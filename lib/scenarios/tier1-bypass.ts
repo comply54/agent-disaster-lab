@@ -33,7 +33,7 @@ export const tier1Bypass: Scenario = {
   regulation: "CBN Tiered KYC",
   authority: "Central Bank of Nigeria",
   teaser:
-    "An agent processes a ₦5,000,000 transfer for an unverified Tier-1 customer — 10× the allowed daily limit — without triggering a KYC upgrade.",
+    "An agent processes a ₦5,000,000 transfer for an unverified Tier-1 customer — 100× the ₦50,000 single-transaction cap — without triggering a KYC upgrade.",
   comply54SectorClass: "NigeriaFintechCompliance",
   steps: [
     {
@@ -79,7 +79,7 @@ export const tier1Bypass: Scenario = {
       type: "consequence",
       headline: "Tier-1 account moved ₦5M. CBN compliance breach. Agent fined.",
       details:
-        "CBN Tiered KYC Framework caps Tier-1 accounts at ₦500,000/day cumulative. Transaction processed at 10× the limit with no BVN verification. Fintech operator liable for regulatory sanction.",
+        "CBN Tiered KYC Framework caps Tier-1 accounts at ₦50,000 per transaction and ₦300,000/day cumulative. Transaction processed at 100× the single-transaction cap with no BVN verification. Fintech operator liable for regulatory sanction.",
       animation: "freeze",
       delayMs: 1000,
     },
@@ -87,7 +87,7 @@ export const tier1Bypass: Scenario = {
   disasterConsequence: {
     headline: "Tier-1 account moved ₦5M. CBN compliance breach.",
     details:
-      "CBN Tiered KYC Framework caps Tier-1 at ₦500,000/day. Transaction processed at 10× limit with no BVN. Fintech operator sanctioned.",
+      "CBN Tiered KYC Framework caps Tier-1 at ₦50,000 per transaction / ₦300,000 per day. Transaction processed at 100× the single-transaction cap with no BVN. Fintech operator sanctioned.",
     animation: "freeze",
   },
   regulationSpotlight: {
