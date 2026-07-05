@@ -11,6 +11,7 @@ import { DisasterAnimation } from "@/components/DisasterAnimation"
 import { CertificateViewer } from "@/components/CertificateViewer"
 import { ApiKeyModal } from "@/components/ApiKeyModal"
 import { ScenarioCodeSnippet } from "@/components/ScenarioCodeSnippet"
+import { PolicySourceModal } from "@/components/PolicySourceModal"
 import {
   streamOpenRouter,
   getStoredApiKey,
@@ -73,6 +74,13 @@ export function ScenarioRunner({ scenario }: Props) {
   const [safeTrace, setSafeTrace] = useState<TraceEntry[]>([])
   const [enforcement, setEnforcement] = useState<EnforcementResult | null>(null)
   const [spotlightOpen, setSpotlightOpen] = useState(false)
+  const [policyPack, setPolicyPack] = useState<string | null>(null)
+  const [policyRegulation, setPolicyRegulation] = useState("")
+
+  const handleViewPolicySource = useCallback((pack: string) => {
+    setPolicyPack(pack)
+    setPolicyRegulation(enforcement?.primaryViolation?.regulation ?? "")
+  }, [enforcement])
 
   const reset = useCallback(() => {
     setUnsafeState("idle")
@@ -81,6 +89,7 @@ export function ScenarioRunner({ scenario }: Props) {
     setSafeTrace([])
     setEnforcement(null)
     setSpotlightOpen(false)
+    setPolicyPack(null)
   }, [])
 
   /* ─── Demo Mode (pre-scripted) ──────────────────────────────────── */
@@ -503,6 +512,9 @@ export function ScenarioRunner({ scenario }: Props) {
           <div className="flex items-center gap-2 px-6 py-3 border-b border-white/5 bg-green-950/20 shrink-0">
             <Shield className="w-4 h-4 text-green-500" />
             <span className="text-sm font-medium text-green-400">Protected by comply54</span>
+            <span className="text-[10px] text-green-600/60 font-mono border border-green-800/30 rounded px-1.5 py-0.5 bg-green-950/30">
+              ⚡ real enforcement
+            </span>
             {safeState === "blocked" && (
               <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="ml-auto">
                 <Badge className="bg-green-700 text-white text-[10px]">BLOCKED</Badge>
@@ -515,6 +527,7 @@ export function ScenarioRunner({ scenario }: Props) {
               runState={safeState}
               mode="safe"
               onViewRegulation={() => setSpotlightOpen(true)}
+              onViewPolicySource={handleViewPolicySource}
             />
             {enforcement && safeState === "blocked" && (
               <CertificateViewer enforcement={enforcement} />
@@ -543,6 +556,17 @@ export function ScenarioRunner({ scenario }: Props) {
             spotlight={scenario.regulationSpotlight}
             enforcement={enforcement}
             onClose={() => setSpotlightOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Policy source modal */}
+      <AnimatePresence>
+        {policyPack && (
+          <PolicySourceModal
+            pack={policyPack}
+            regulation={policyRegulation}
+            onClose={() => setPolicyPack(null)}
           />
         )}
       </AnimatePresence>

@@ -11,6 +11,7 @@ interface Props {
   runState: RunState
   mode: "safe" | "unsafe"
   onViewRegulation?: () => void
+  onViewPolicySource?: (pack: string) => void
 }
 
 function TypedText({ text, speed = 16 }: { text: string; speed?: number }) {
@@ -140,9 +141,11 @@ function ConsequenceEntry({ entry }: { entry: TraceEntry }) {
 function BlockEntry({
   entry,
   onViewRegulation,
+  onViewPolicySource,
 }: {
   entry: TraceEntry
   onViewRegulation?: () => void
+  onViewPolicySource?: (pack: string) => void
 }) {
   return (
     <motion.div
@@ -184,14 +187,24 @@ function BlockEntry({
           </div>
         )}
 
-        {onViewRegulation && (
-          <button
-            onClick={onViewRegulation}
-            className="mt-3 text-xs text-green-400/70 hover:text-green-300 underline underline-offset-2 transition-colors"
-          >
-            View regulation + penalty →
-          </button>
-        )}
+        <div className="mt-3 flex items-center gap-4">
+          {onViewRegulation && (
+            <button
+              onClick={onViewRegulation}
+              className="text-xs text-green-400/70 hover:text-green-300 underline underline-offset-2 transition-colors"
+            >
+              View regulation + penalty →
+            </button>
+          )}
+          {onViewPolicySource && entry.enforcement?.primaryViolation?.pack && (
+            <button
+              onClick={() => onViewPolicySource(entry.enforcement!.primaryViolation!.pack)}
+              className="text-xs text-violet-400/70 hover:text-violet-300 underline underline-offset-2 transition-colors"
+            >
+              View policy source →
+            </button>
+          )}
+        </div>
       </motion.div>
     </motion.div>
   )
@@ -201,10 +214,12 @@ function TraceItem({
   entry,
   mode,
   onViewRegulation,
+  onViewPolicySource,
 }: {
   entry: TraceEntry
   mode: "safe" | "unsafe"
   onViewRegulation?: () => void
+  onViewPolicySource?: (pack: string) => void
 }) {
   switch (entry.type) {
     case "thinking":
@@ -222,6 +237,7 @@ function TraceItem({
         <BlockEntry
           entry={entry}
           onViewRegulation={mode === "safe" ? onViewRegulation : undefined}
+          onViewPolicySource={mode === "safe" ? onViewPolicySource : undefined}
         />
       )
     default:
@@ -229,7 +245,7 @@ function TraceItem({
   }
 }
 
-export function AgentTrace({ entries, runState, mode, onViewRegulation }: Props) {
+export function AgentTrace({ entries, runState, mode, onViewRegulation, onViewPolicySource }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -251,6 +267,7 @@ export function AgentTrace({ entries, runState, mode, onViewRegulation }: Props)
             entry={entry}
             mode={mode}
             onViewRegulation={onViewRegulation}
+            onViewPolicySource={onViewPolicySource}
           />
         ))}
       </AnimatePresence>
