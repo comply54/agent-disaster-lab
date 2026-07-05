@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://disaster.comply54.io"),
   title: "Agent Disaster Lab — by comply54",
   description:
     "Watch AI agents cause real African regulatory disasters — then watch comply54 stop every single one. Live enforcement demos for CBN, NDPA, NHA, NAICOM, NFIU, KDPA and more.",

@@ -23,12 +23,12 @@ export default function OgImage() {
           style={{
             display: "flex",
             alignItems: "center",
+            alignSelf: "flex-start",
             gap: 10,
             background: "rgba(239,68,68,0.1)",
             border: "1px solid rgba(239,68,68,0.25)",
             borderRadius: 99,
             padding: "6px 18px",
-            width: "fit-content",
             marginBottom: 48,
           }}
         >
