@@ -137,6 +137,7 @@ export interface EnforcementResult {
     ruleTriggered?: string
   }
   certificate?: Record<string, unknown>
+  receiptToken?: string
   auditId: string
   evaluatedAt: string
 }

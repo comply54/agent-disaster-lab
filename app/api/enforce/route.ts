@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { EnforcementRequest, EnforcementResult } from "@/lib/types"
+import { DEMO_PRIVATE_KEY } from "@/lib/receipt-demo"
 
 import {
   NigeriaFintechCompliance,
@@ -16,18 +17,22 @@ type SectorClassName =
   | "KenyaFintechCompliance"
   | "PanAfricanFintechCompliance"
 
+// Use env var in production deployments; fall back to the committed demo key.
+const SIGNING_KEY = process.env.COMPLY54_DEMO_SIGNING_KEY ?? DEMO_PRIVATE_KEY
+
 function getSectorInstance(className: SectorClassName) {
+  const opts = { signingKey: SIGNING_KEY }
   switch (className) {
     case "NigeriaHealthcareCompliance":
-      return new NigeriaHealthcareCompliance()
+      return new NigeriaHealthcareCompliance(opts)
     case "NigeriaInsuranceCompliance":
-      return new NigeriaInsuranceCompliance()
+      return new NigeriaInsuranceCompliance(opts)
     case "KenyaFintechCompliance":
-      return new KenyaFintechCompliance()
+      return new KenyaFintechCompliance(opts)
     case "PanAfricanFintechCompliance":
-      return new PanAfricanFintechCompliance()
+      return new PanAfricanFintechCompliance(opts)
     default:
-      return new NigeriaFintechCompliance()
+      return new NigeriaFintechCompliance(opts)
   }
 }
 
@@ -51,13 +56,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const compliance = getSectorInstance(sectorClass as SectorClassName)
-    const result = compliance.check(action, params ?? {}, "", context ?? {})
+    // checkSigned() returns the same ComplianceResult + receiptToken populated
+    const result = await compliance.checkSigned(action, params ?? {}, "", context ?? {})
 
     const response: EnforcementResult = {
       decision: result.overall,
       blocked: result.blocked,
       auditId: result.auditId,
       evaluatedAt: result.evaluatedAt,
+      receiptToken: result.receiptToken,
       ...(result.primaryViolation && {
         primaryViolation: {
           pack: result.primaryViolation.pack,
