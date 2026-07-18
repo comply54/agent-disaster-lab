@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,6 +37,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-[#080a0f]">{children}</body>
+      <Script
+        defer
+        data-domain="disaster.comply54.io"
+        src="https://plausible.io/js/script.js"
+        strategy="afterInteractive"
+      />
     </html>
   );
 }
