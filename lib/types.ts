@@ -117,25 +117,30 @@ export interface EnforcementRequest {
   params: Record<string, unknown>
   sectorClass: string
   action: string
+  output?: string
   context?: Record<string, unknown>
+}
+
+export interface EnforcementViolation {
+  pack: string
+  regulation: string
+  jurisdiction: string
+  decision: "deny" | "escalate" | "audit"
+  messages: string[]
+  citations: Array<{
+    document: string
+    section: string
+    authority: string
+    year: number
+  }>
+  ruleTriggered?: string
 }
 
 export interface EnforcementResult {
   decision: "allow" | "deny" | "escalate" | "audit"
   blocked: boolean
-  primaryViolation?: {
-    pack: string
-    regulation: string
-    jurisdiction: string
-    messages: string[]
-    citations: Array<{
-      document: string
-      section: string
-      authority: string
-      year: number
-    }>
-    ruleTriggered?: string
-  }
+  primaryViolation?: EnforcementViolation
+  allViolations?: EnforcementViolation[]
   certificate?: Record<string, unknown>
   receiptToken?: string
   auditId: string

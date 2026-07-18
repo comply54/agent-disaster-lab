@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  const { toolName, params, sectorClass, action, context } = body
+  const { toolName, params, sectorClass, action, output, context } = body
 
   if (!toolName || !sectorClass || !action) {
     return NextResponse.json(
@@ -56,8 +56,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const compliance = getSectorInstance(sectorClass as SectorClassName)
-    // checkSigned() returns the same ComplianceResult + receiptToken populated
-    const result = await compliance.checkSigned(action, params ?? {}, "", context ?? {})
+    const result = await compliance.checkSigned(
+      action,
+      params ?? {},
+      output ?? "",
+      context ?? {}
+    )
 
     const response: EnforcementResult = {
       decision: result.overall,
@@ -70,10 +74,22 @@ export async function POST(request: NextRequest) {
           pack: result.primaryViolation.pack,
           regulation: result.primaryViolation.regulation,
           jurisdiction: result.primaryViolation.jurisdiction,
+          decision: result.primaryViolation.action as "deny" | "escalate" | "audit",
           messages: result.primaryViolation.messages,
           citations: result.primaryViolation.citations,
           ruleTriggered: result.primaryViolation.ruleTriggered,
         },
+      }),
+      ...(result.violations.length > 0 && {
+        allViolations: result.violations.map((v) => ({
+          pack: v.pack,
+          regulation: v.regulation,
+          jurisdiction: v.jurisdiction,
+          decision: v.action as "deny" | "escalate" | "audit",
+          messages: v.messages,
+          citations: v.citations,
+          ruleTriggered: v.ruleTriggered,
+        })),
       }),
     }
 
