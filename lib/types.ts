@@ -121,6 +121,53 @@ export interface EnforcementRequest {
   context?: Record<string, unknown>
 }
 
+// ── Attacker Mode ─────────────────────────────────────────────────────────────
+
+export interface AttackerAgent {
+  id: string
+  name: string
+  role: string
+  organization: string
+  sector: string
+  sectorClass:
+    | "NigeriaFintechCompliance"
+    | "NigeriaHealthcareCompliance"
+    | "NigeriaInsuranceCompliance"
+    | "KenyaFintechCompliance"
+    | "PanAfricanFintechCompliance"
+  difficulty: "Beginner" | "Intermediate" | "Advanced"
+  emoji: string
+  color: string
+  accentClass: string
+  borderClass: string
+  bgClass: string
+  description: string
+  objective: string
+  attackSurface: string[]
+  packs: string[]
+  totalRegulations: number
+  systemPrompt: string
+  tools: OpenRouterTool[]
+}
+
+export interface AttackToolCall {
+  id: string
+  name: string
+  params: Record<string, unknown>
+  enforcement: EnforcementResult
+}
+
+export interface AttackTurn {
+  id: string
+  userPrompt: string
+  agentThinking: string
+  agentText: string
+  toolCalls: AttackToolCall[]
+  timestamp: number
+}
+
+// ── Shared violation type ─────────────────────────────────────────────────────
+
 export interface EnforcementViolation {
   pack: string
   regulation: string

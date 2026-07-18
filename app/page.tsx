@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Shield, Zap, AlertTriangle, Star, ExternalLink, ArrowRight, FlaskConical } from "lucide-react"
+import { Shield, Zap, AlertTriangle, Star, ExternalLink, ArrowRight, FlaskConical, Swords } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { scenarios } from "@/lib/scenarios"
 import type { Sector } from "@/lib/types"
@@ -446,6 +446,46 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+      </motion.section>
+
+      {/* Attacker Mode CTA */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.82, duration: 0.5 }}
+        className="px-6 pb-10 max-w-4xl mx-auto"
+      >
+        <Link href="/attacker" className="block group">
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] hover:bg-red-500/[0.07] hover:border-red-500/35 transition-all duration-200 px-7 py-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <Swords className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="font-semibold text-white text-lg">Attacker Mode</h2>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-red-500/30 bg-red-500/8 text-red-400">
+                      New
+                    </span>
+                  </div>
+                  <p className="text-white/40 text-sm leading-relaxed max-w-xl">
+                    You are the attacker. Social-engineer a real AI agent into breaking African regulations.
+                    comply54 intercepts every tool call in real time — your goal is to discover as many violations as possible.
+                  </p>
+                  <div className="flex items-center gap-4 mt-3 text-xs text-white/25">
+                    <span>4 vulnerable agents</span>
+                    <span className="w-px h-3 bg-white/10" />
+                    <span>Real LLM · Real enforcement</span>
+                    <span className="w-px h-3 bg-white/10" />
+                    <span>10 free turns / 24h</span>
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-white/20 group-hover:text-white/50 shrink-0 mt-1 transition-colors" />
+            </div>
+          </div>
+        </Link>
       </motion.section>
 
       {/* Scenario Grid */}
