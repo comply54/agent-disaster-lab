@@ -56,12 +56,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const compliance = getSectorInstance(sectorClass as SectorClassName)
+    const enfStart = Date.now()
     const result = await compliance.checkSigned(
       action,
       params ?? {},
       output ?? "",
       context ?? {}
     )
+    const policyCheckMs = Date.now() - enfStart
 
     const response: EnforcementResult = {
       decision: result.overall,
@@ -69,6 +71,7 @@ export async function POST(request: NextRequest) {
       auditId: result.auditId,
       evaluatedAt: result.evaluatedAt,
       receiptToken: result.receiptToken,
+      policyCheckMs,
       ...(result.primaryViolation && {
         primaryViolation: {
           pack: result.primaryViolation.pack,

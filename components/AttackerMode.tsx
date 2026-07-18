@@ -103,16 +103,37 @@ function ViolationBadge({ v }: { v: EnforcementViolation }) {
   )
 }
 
+const PACK_FULL_LABELS: Record<string, string> = {
+  "nigeria/cbn":        "CBN NIP Framework",
+  "nigeria/nfiu-aml":   "NFIU AML/CFT Regulations",
+  "nigeria/bvn-nin":    "CBN BVN/NIN Framework",
+  "nigeria/ndpa":       "NDPA 2023",
+  "nigeria/nha":        "National Health Act",
+  "nigeria/naicom":     "NAICOM Guidelines",
+  "kenya/kdpa":         "Kenya DPA 2019",
+}
+
 function EnforcementCard({ toolCall }: { toolCall: AttackToolCall }) {
   const [open, setOpen] = useState(true)
+  const [runtimeOpen, setRuntimeOpen] = useState(false)
   const enf = toolCall.enforcement
   const isPending = !enf.auditId && !enf.blocked && enf.decision === "allow"
 
+  const violatedPacks = new Set([
+    ...(enf.primaryViolation?.pack ? [enf.primaryViolation.pack] : []),
+    ...(enf.allViolations?.map(v => v.pack) ?? []),
+  ])
+
+  const violationByPack = new Map(
+    enf.allViolations?.map(v => [v.pack, v]) ??
+    (enf.primaryViolation ? [[enf.primaryViolation.pack, enf.primaryViolation]] : [])
+  )
+
   return (
     <div className={`rounded-lg border text-xs overflow-hidden ${
-      isPending              ? "border-white/8  bg-white/[0.02]" :
-      enf.blocked            ? "border-red-500/20 bg-red-500/[0.04]" :
-      enf.decision === "audit"? "border-yellow-500/20 bg-yellow-500/[0.03]" :
+      isPending               ? "border-white/8  bg-white/[0.02]" :
+      enf.blocked             ? "border-red-500/20 bg-red-500/[0.04]" :
+      enf.decision === "audit" ? "border-yellow-500/20 bg-yellow-500/[0.03]" :
       "border-green-500/20 bg-green-500/[0.03]"
     }`}>
       {/* Header */}
@@ -137,42 +158,133 @@ function EnforcementCard({ toolCall }: { toolCall: AttackToolCall }) {
             {enf.blocked ? "BLOCKED" : enf.decision.toUpperCase()}
           </span>
         )}
-        {!isPending && (enf.primaryViolation || enf.decision !== "allow") && (
+        {!isPending && (
           open ? <ChevronDown className="w-3 h-3 text-white/20 ml-1" /> : <ChevronRight className="w-3 h-3 text-white/20 ml-1" />
         )}
       </button>
 
-      {/* Params preview */}
-      {open && Object.keys(toolCall.params).length > 0 && (
-        <div className="px-3 pb-2 flex flex-wrap gap-1.5">
-          {Object.entries(toolCall.params).map(([k, v]) => (
-            <span key={k} className="text-[10px] text-white/30 font-mono">
-              <span className="text-white/20">{k}:</span>{" "}
-              <span className="text-white/45">{String(v).slice(0, 40)}{String(v).length > 40 ? "…" : ""}</span>
-            </span>
-          ))}
-        </div>
-      )}
+      {open && (
+        <>
+          {/* Params preview */}
+          {Object.keys(toolCall.params).length > 0 && (
+            <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+              {Object.entries(toolCall.params).map(([k, v]) => (
+                <span key={k} className="text-[10px] text-white/30 font-mono">
+                  <span className="text-white/20">{k}:</span>{" "}
+                  <span className="text-white/45">{String(v).slice(0, 40)}{String(v).length > 40 ? "…" : ""}</span>
+                </span>
+              ))}
+            </div>
+          )}
 
-      {/* Violation details */}
-      {open && enf.blocked && enf.primaryViolation && (
-        <div className="px-3 pb-3 border-t border-red-500/10 pt-2 space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <ViolationBadge v={enf.primaryViolation} />
-            <span className="text-[10px] text-white/40 font-medium">{enf.primaryViolation.regulation}</span>
-          </div>
-          {enf.primaryViolation.messages.slice(0, 2).map((msg, i) => (
-            <p key={i} className="text-[11px] text-red-300/70 leading-relaxed">{msg}</p>
-          ))}
-          {enf.primaryViolation.citations[0] && (
-            <p className="text-[10px] text-white/25 font-mono">
-              {enf.primaryViolation.citations[0].document} § {enf.primaryViolation.citations[0].section}
-            </p>
+          {/* Violation details */}
+          {enf.blocked && enf.primaryViolation && (
+            <div className="px-3 pb-3 border-t border-red-500/10 pt-2 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <ViolationBadge v={enf.primaryViolation} />
+                <span className="text-[10px] text-white/40 font-medium">{enf.primaryViolation.regulation}</span>
+              </div>
+              {enf.primaryViolation.messages.slice(0, 2).map((msg, i) => (
+                <p key={i} className="text-[11px] text-red-300/70 leading-relaxed">{msg}</p>
+              ))}
+              {enf.primaryViolation.citations[0] && (
+                <p className="text-[10px] text-white/25 font-mono">
+                  {enf.primaryViolation.citations[0].document} § {enf.primaryViolation.citations[0].section}
+                </p>
+              )}
+              {(enf.allViolations?.length ?? 0) > 1 && (
+                <p className="text-[10px] text-white/25">
+                  +{(enf.allViolations?.length ?? 1) - 1} more violation{(enf.allViolations?.length ?? 1) - 1 > 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
           )}
-          {(enf.allViolations?.length ?? 0) > 1 && (
-            <p className="text-[10px] text-white/25">+{(enf.allViolations?.length ?? 1) - 1} more violation{(enf.allViolations?.length ?? 1) - 1 > 1 ? "s" : ""}</p>
+
+          {/* Runtime evaluation panel */}
+          {!isPending && (
+            <div className="border-t border-white/5">
+              <button
+                onClick={() => setRuntimeOpen(!runtimeOpen)}
+                className="w-full flex items-center gap-1.5 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors"
+              >
+                {runtimeOpen
+                  ? <ChevronDown className="w-3 h-3 text-white/15" />
+                  : <ChevronRight className="w-3 h-3 text-white/15" />
+                }
+                <span className="text-[10px] text-white/25 tracking-wide">Runtime evaluation</span>
+                {enf.policyCheckMs != null && (
+                  <span className="ml-auto text-[10px] font-mono text-white/20">
+                    {enf.policyCheckMs}ms
+                  </span>
+                )}
+              </button>
+
+              {runtimeOpen && (
+                <div className="px-3 pb-3 space-y-3">
+                  {/* Policy list */}
+                  {enf.evaluatedPacks && enf.evaluatedPacks.length > 0 && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-widest text-white/15 mb-1.5">
+                        Policies evaluated
+                      </p>
+                      <div className="space-y-1">
+                        {enf.evaluatedPacks.map(pack => {
+                          const violated = violatedPacks.has(pack)
+                          const v = violationByPack.get(pack)
+                          return (
+                            <div key={pack} className="flex items-center gap-2">
+                              <span className={`text-[10px] shrink-0 ${violated ? "text-red-400" : "text-green-500/60"}`}>
+                                {violated ? "✗" : "✓"}
+                              </span>
+                              <span className={`text-[10px] font-mono flex-1 ${violated ? "text-white/50" : "text-white/25"}`}>
+                                {PACK_FULL_LABELS[pack] ?? pack}
+                              </span>
+                              {violated && v && (
+                                <span className={`text-[9px] font-bold tracking-wider shrink-0 ${
+                                  v.decision === "deny"     ? "text-red-400" :
+                                  v.decision === "escalate" ? "text-amber-400" :
+                                  "text-yellow-400"
+                                }`}>
+                                  {v.decision.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Meta row */}
+                  <div className="flex items-center gap-4 pt-1 border-t border-white/5">
+                    <div>
+                      <p className="text-[9px] text-white/15 uppercase tracking-widest">Decision</p>
+                      <p className={`text-[10px] font-bold tracking-wider mt-0.5 ${
+                        enf.blocked ? "text-red-400" :
+                        enf.decision === "audit" ? "text-yellow-400" :
+                        "text-green-400"
+                      }`}>
+                        {enf.decision.toUpperCase()}
+                      </p>
+                    </div>
+                    {enf.policyCheckMs != null && (
+                      <div>
+                        <p className="text-[9px] text-white/15 uppercase tracking-widest">Latency</p>
+                        <p className="text-[10px] font-mono text-white/40 mt-0.5">{enf.policyCheckMs}ms</p>
+                      </div>
+                    )}
+                    {enf.auditId && (
+                      <div className="min-w-0">
+                        <p className="text-[9px] text-white/15 uppercase tracking-widest">Audit ID</p>
+                        <p className="text-[10px] font-mono text-white/25 mt-0.5 truncate">{enf.auditId.slice(0, 16)}…</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   )

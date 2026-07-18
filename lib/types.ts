@@ -192,4 +192,6 @@ export interface EnforcementResult {
   receiptToken?: string
   auditId: string
   evaluatedAt: string
+  policyCheckMs?: number
+  evaluatedPacks?: string[]
 }

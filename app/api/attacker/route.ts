@@ -147,13 +147,16 @@ export async function POST(request: NextRequest) {
                 request.url,
               )
 
-              send("enforcement", { id: tc.id, toolName: tc.function.name, params, enforcement })
+              // Enrich with which packs were evaluated (derived from agent config)
+              const enriched = { ...enforcement, evaluatedPacks: agent.packs }
+
+              send("enforcement", { id: tc.id, toolName: tc.function.name, params, enforcement: enriched })
 
               processedCalls.push({
                 id: tc.id,
                 name: tc.function.name,
                 arguments: tc.function.arguments,
-                enforcement,
+                enforcement: enriched,
               })
               break
             }
