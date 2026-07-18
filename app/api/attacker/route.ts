@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const model = "anthropic/claude-haiku-4-5-20251001"
+  const model = "anthropic/claude-haiku-4-5"
   const fullMessages: OpenRouterMessage[] = [
     { role: "system", content: agent.systemPrompt },
     ...messages,

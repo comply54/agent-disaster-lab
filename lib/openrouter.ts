@@ -27,7 +27,7 @@ export const OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 export const POPULAR_MODELS = [
   { id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-  { id: "anthropic/claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
+  { id: "anthropic/claude-haiku-4-5", label: "Claude Haiku 4.5" },
   { id: "openai/gpt-4o", label: "GPT-4o" },
   { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
   { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
