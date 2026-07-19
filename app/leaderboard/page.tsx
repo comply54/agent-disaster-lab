@@ -73,7 +73,7 @@ export default function LeaderboardPage() {
           <span className="text-white/15">/</span>
           <a href="/attacker/missions" className="flex items-center gap-1.5 text-white/40 hover:text-white/60 transition-colors">
             <Swords className="w-3.5 h-3.5 text-red-400" />
-            <span className="text-red-400/80">Missions</span>
+            <span className="text-red-400/80">Scenarios</span>
           </a>
           <span className="text-white/15">/</span>
           <span className="text-white/60 font-medium">Leaderboard</span>
@@ -107,7 +107,7 @@ export default function LeaderboardPage() {
               <h1 className="text-2xl font-bold text-white">Global Leaderboard</h1>
             </div>
             <p className="text-sm text-white/35">
-              {meta.missions} missions · {meta.pts} total points
+              {meta.missions} scenarios · {meta.pts} total points
             </p>
           </div>
           <button
@@ -167,7 +167,7 @@ export default function LeaderboardPage() {
               href="/attacker/missions"
               className="inline-flex items-center gap-1.5 mt-4 text-xs text-white/40 hover:text-white/60 transition-colors border border-white/8 px-4 py-2 rounded-lg hover:border-white/20"
             >
-              Start missions →
+              Start simulating →
             </a>
           </div>
         ) : (
@@ -177,7 +177,7 @@ export default function LeaderboardPage() {
               <span className="text-[10px] uppercase tracking-widest text-white/20">#</span>
               <span className="text-[10px] uppercase tracking-widest text-white/20">Player</span>
               <span className="text-[10px] uppercase tracking-widest text-white/20 text-right">Points</span>
-              <span className="text-[10px] uppercase tracking-widest text-white/20 text-right">Missions</span>
+              <span className="text-[10px] uppercase tracking-widest text-white/20 text-right">Scenarios</span>
               <span className="text-[10px] uppercase tracking-widest text-white/20 text-right">Last active</span>
             </div>
 

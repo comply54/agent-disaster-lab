@@ -309,9 +309,9 @@ function Debrief({
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-6 py-5 flex items-start gap-4">
         <CheckCircle2 className="w-8 h-8 text-emerald-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-emerald-400/60 mb-1">Mission complete</p>
+          <p className="text-[10px] uppercase tracking-widest text-emerald-400/60 mb-1">Scenario complete</p>
           <h2 className="text-xl font-bold text-white">
-            Mission {mission.number}: {mission.title}
+            Scenario {mission.number}: {mission.title}
           </h2>
           <p className="text-sm text-white/40 mt-1">+{mission.points} points · {turnsUsed} attack{turnsUsed !== 1 ? "s" : ""}</p>
         </div>
@@ -414,13 +414,13 @@ function Debrief({
           onClick={onNext}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black font-medium text-sm hover:bg-white/90 transition-colors"
         >
-          Next mission <ArrowRight className="w-4 h-4" />
+          Next scenario <ArrowRight className="w-4 h-4" />
         </button>
         <button
           onClick={onGrid}
           className="px-5 py-2.5 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-white/50 hover:text-white/80 hover:border-white/20 transition-all"
         >
-          All missions
+          All scenarios
         </button>
       </div>
 
@@ -824,11 +824,11 @@ export function MissionsMode() {
       <div className="mb-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-400 text-[10px] font-medium mb-4">
           <BookOpen className="w-3 h-3" />
-          25 missions · 3 agents · 525 pts total
+          25 scenarios · 3 agents · 525 pts total
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">Choose your target</h1>
         <p className="text-sm text-white/40 max-w-md leading-relaxed">
-          Each agent pack covers a different regulatory domain. Complete missions by convincing the agent to attempt a blocked tool call.
+          Each agent pack covers a different regulatory domain. Complete scenarios by convincing the agent to attempt a blocked tool call.
         </p>
       </div>
 
@@ -874,7 +874,7 @@ export function MissionsMode() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-white/30">{packCompleted}/{missions.length} missions</span>
+                  <span className="text-white/30">{packCompleted}/{missions.length} scenarios</span>
                   <span className="text-white/25 tabular-nums">{packEarned}/{packTotal} pts</span>
                 </div>
                 <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
@@ -926,7 +926,7 @@ export function MissionsMode() {
                 <span className="text-2xl">{agent.emoji}</span>
                 <h1 className="text-2xl font-bold text-white">{agent.name} — {agent.organization}</h1>
               </div>
-              <p className="text-sm text-white/40">{agent.sector} · {agentMissions.length} missions · {agentTotalPoints} total points</p>
+              <p className="text-sm text-white/40">{agent.sector} · {agentMissions.length} scenarios · {agentTotalPoints} total points</p>
             </div>
             <div className="text-right shrink-0">
               <p className="text-2xl font-black text-white tabular-nums">{agentEarned}</p>
@@ -936,7 +936,7 @@ export function MissionsMode() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[10px] text-white/25">
-              <span>{agentCompletedIds.size}/{agentMissions.length} missions completed</span>
+              <span>{agentCompletedIds.size}/{agentMissions.length} scenarios completed</span>
               <span>{unlockedIds.size - agentCompletedIds.size} unlocked and waiting</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
@@ -964,7 +964,7 @@ export function MissionsMode() {
         {agentCompletedIds.size === agentMissions.length && agentMissions.length > 0 && (
           <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-6 py-5 text-center">
             <Trophy className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-            <p className="font-bold text-white text-lg">All missions complete!</p>
+            <p className="font-bold text-white text-lg">All scenarios complete!</p>
             <p className="text-sm text-white/40 mt-1">
               You discovered every regulatory vulnerability in {agent.name}. {agentTotalPoints} points earned.
             </p>
@@ -996,7 +996,7 @@ export function MissionsMode() {
               onClick={() => setPhase("grid")}
               className="text-[10px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
             >
-              <ChevronLeft className="w-3 h-3" /> Back to missions
+              <ChevronLeft className="w-3 h-3" /> Back to scenarios
             </button>
           </div>
           <div className="flex items-start justify-between gap-4">
@@ -1052,7 +1052,7 @@ export function MissionsMode() {
             onClick={() => setPhase("grid")}
             className="px-5 py-3 rounded-lg border border-white/10 bg-white/[0.02] text-sm text-white/40 hover:text-white/70 hover:border-white/20 transition-all"
           >
-            Choose different mission
+            Choose different scenario
           </button>
         </div>
       </div>
@@ -1174,7 +1174,7 @@ export function MissionsMode() {
             </div>
 
             <div>
-              <p className="text-[9px] uppercase tracking-widest text-white/20 mb-2">Missions</p>
+              <p className="text-[9px] uppercase tracking-widest text-white/20 mb-2">Scenarios</p>
               <div className="space-y-1">
                 {agentMissions.slice(0, 7).map(m => (
                   <div key={m.id} className={`flex items-center gap-2 text-[10px] ${
@@ -1278,13 +1278,13 @@ export function MissionsMode() {
                 onClick={() => { setSelectedAgentId(null); setPhase("agents") }}
                 className="text-white/40 hover:text-white/60 transition-colors shrink-0"
               >
-                Missions
+                Scenarios
               </button>
               <span className="text-white/15">/</span>
               <span className="text-white/60 font-medium truncate">{selectedAgent.name}</span>
             </>
           ) : (
-            <span className="text-white/60 font-medium">Missions</span>
+            <span className="text-white/60 font-medium">Scenarios</span>
           )}
         </div>
 
