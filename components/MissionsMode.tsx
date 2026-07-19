@@ -13,6 +13,8 @@ import {
 import { getAttackerAgent } from "@/lib/attacker-agents"
 import { getStoredApiKey } from "@/lib/openrouter"
 import { readSSE } from "@/lib/sse"
+import { useAuth } from "@/lib/auth-context"
+import { saveCompletion, syncLocalToDb, loadUserCompletions } from "@/lib/db"
 import type {
   AttackToolCall, AttackTurn, EnforcementResult, EnforcementViolation,
   MissionCompletion,
@@ -352,6 +354,9 @@ type Phase = "agents" | "grid" | "active" | "debrief"
 const GRAND_TOTAL_POINTS = ALL_MISSIONS.reduce((s, m) => s + m.points, 0)
 
 export function MissionsMode() {
+  // Auth
+  const { user, username, openAuthModal } = useAuth()
+
   // Persistence
   const [completions, setCompletions] = useState<MissionCompletion[]>([])
 
@@ -378,8 +383,23 @@ export function MissionsMode() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Load completions
+  // Load completions from localStorage on mount
   useEffect(() => { setCompletions(loadCompletions()) }, [])
+
+  // When user signs in, merge DB completions → localStorage + sync local-only ones to DB
+  useEffect(() => {
+    if (!user) return
+    loadUserCompletions().then(dbCompletions => {
+      setCompletions(prev => {
+        const dbIds = new Set(dbCompletions.map(c => c.missionId))
+        const localOnly = prev.filter(c => !dbIds.has(c.missionId))
+        const merged = [...dbCompletions, ...localOnly]
+        saveCompletions(merged)
+        if (localOnly.length > 0) syncLocalToDb(localOnly)
+        return merged
+      })
+    })
+  }, [user])
 
   // Auto-scroll
   useEffect(() => {
@@ -442,6 +462,7 @@ export function MissionsMode() {
     const next = [...completions.filter(c => c.missionId !== mission.id), completion]
     setCompletions(next)
     saveCompletions(next)
+    if (user) saveCompletion(completion)
     setLastTriggeredViolations(violations)
     setMissionComplete(true)
     setPhase("debrief")
@@ -957,16 +978,36 @@ export function MissionsMode() {
     const nextMission = getNextMission()
 
     return (
-      <Debrief
-        mission={activeMission}
-        turnsUsed={turns.length}
-        triggeredViolations={lastTriggeredViolations}
-        onNext={() => {
-          if (nextMission) startMission(nextMission)
-          else setPhase("grid")
-        }}
-        onGrid={() => setPhase("grid")}
-      />
+      <div>
+        <Debrief
+          mission={activeMission}
+          turnsUsed={turns.length}
+          triggeredViolations={lastTriggeredViolations}
+          onNext={() => {
+            if (nextMission) startMission(nextMission)
+            else setPhase("grid")
+          }}
+          onGrid={() => setPhase("grid")}
+        />
+        {/* Sign-in CTA — only for anonymous users */}
+        {!user && (
+          <div className="max-w-2xl mx-auto px-4 pb-10 -mt-2">
+            <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.04] px-5 py-4 flex items-center gap-4">
+              <Trophy className="w-7 h-7 text-yellow-400/60 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white/70">Your score isn&apos;t on the leaderboard</p>
+                <p className="text-xs text-white/35 mt-0.5">Sign in to save your progress and compete globally.</p>
+              </div>
+              <button
+                onClick={openAuthModal}
+                className="shrink-0 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     )
   }
 
@@ -1011,6 +1052,12 @@ export function MissionsMode() {
             <span className="tabular-nums">{totalEarned}</span>
             <span className="text-white/15">/ {GRAND_TOTAL_POINTS}</span>
           </div>
+          <a
+            href="/leaderboard"
+            className="text-xs text-white/25 hover:text-white/50 transition-colors hidden sm:block"
+          >
+            Leaderboard
+          </a>
           {completions.length > 0 && (
             <button
               onClick={() => { setCompletions([]); saveCompletions([]) }}
@@ -1019,9 +1066,21 @@ export function MissionsMode() {
               <RotateCcw className="w-3 h-3" /> Reset
             </button>
           )}
-          <a href="/attacker/explore" className="text-xs text-white/25 hover:text-white/50 transition-colors">
-            Free exploration →
-          </a>
+          {user ? (
+            <div className="flex items-center gap-1.5 text-xs text-white/40 border border-white/8 px-2.5 py-1 rounded-lg">
+              <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50">
+                {username?.[0]?.toUpperCase() ?? "?"}
+              </div>
+              <span className="max-w-[80px] truncate">{username ?? "…"}</span>
+            </div>
+          ) : (
+            <button
+              onClick={openAuthModal}
+              className="text-[10px] text-white/30 hover:text-white/60 transition-colors border border-white/8 px-2.5 py-1 rounded-lg hover:border-white/20"
+            >
+              Sign in
+            </button>
+          )}
         </div>
       </nav>
 

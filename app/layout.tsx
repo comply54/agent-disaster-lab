@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { AuthProvider } from "@/lib/auth-context";
+import { AuthModal } from "@/components/AuthModal";
+import { UsernameModal } from "@/components/UsernameModal";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,7 +39,13 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-[#080a0f]">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#080a0f]">
+        <AuthProvider>
+          {children}
+          <AuthModal />
+          <UsernameModal />
+        </AuthProvider>
+      </body>
       <Script
         defer
         data-domain="disaster.comply54.io"
