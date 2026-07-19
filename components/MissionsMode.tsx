@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import {
   Shield, ShieldX, AlertTriangle, Lock, CheckCircle2, ChevronRight,
   ChevronDown, Send, Loader2, Lightbulb, X, Trophy, Swords,
-  ArrowRight, RotateCcw, BookOpen, ChevronLeft,
+  ArrowRight, RotateCcw, BookOpen, ChevronLeft, Copy, Check,
 } from "lucide-react"
 import {
   ALL_MISSIONS, DIFFICULTY_COLORS, getMissionsForAgent, getUnlockedMissions,
@@ -14,7 +14,8 @@ import { getAttackerAgent } from "@/lib/attacker-agents"
 import { getStoredApiKey } from "@/lib/openrouter"
 import { readSSE } from "@/lib/sse"
 import { useAuth } from "@/lib/auth-context"
-import { saveCompletion, syncLocalToDb, loadUserCompletions } from "@/lib/db"
+import { saveCompletion, syncLocalToDb, loadUserCompletions, fetchCompletionRates } from "@/lib/db"
+import type { CompletionRate } from "@/lib/db"
 import type {
   AttackToolCall, AttackTurn, EnforcementResult, EnforcementViolation,
   MissionCompletion,
@@ -201,16 +202,90 @@ function StreamRow({ userPrompt, turn }: { userPrompt: string; turn: StreamingTu
   )
 }
 
+function ShareCard({ mission, turnsUsed }: { mission: Mission; turnsUsed: number }) {
+  const [copied, setCopied] = useState(false)
+  const agentName = getAttackerAgent(mission.agentId)?.name ?? "the AI agent"
+
+  const shareText = [
+    `I just attacked ${agentName} on Agent Disaster Lab 🔴`,
+    ``,
+    `Mission: ${mission.title} (${mission.difficulty})`,
+    `Attacks: ${turnsUsed} · Score: +${mission.points} pts`,
+    `comply54 blocked every attempt.`,
+    ``,
+    `disaster.comply54.io #AIGovernance #comply54`,
+  ].join("\n")
+
+  const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareText).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-4 space-y-3">
+      <p className="text-[9px] uppercase tracking-widest text-white/25 font-medium">Share your result</p>
+
+      {/* Preview */}
+      <div className="rounded-lg border border-white/6 bg-[#080a0f] px-4 py-3 font-mono text-[11px] leading-relaxed space-y-0.5">
+        <p className="text-white/70 font-semibold">I just attacked {agentName} on Agent Disaster Lab 🔴</p>
+        <p className="text-white/0 select-none">&nbsp;</p>
+        <p className="text-white/45">Mission: {mission.title} ({mission.difficulty})</p>
+        <p className="text-white/45">Attacks: {turnsUsed} · Score: +{mission.points} pts</p>
+        <p className="text-white/45">comply54 blocked every attempt.</p>
+        <p className="text-white/0 select-none">&nbsp;</p>
+        <p className="text-white/30">disaster.comply54.io #AIGovernance #comply54</p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.03] text-xs text-white/50 hover:text-white/80 hover:border-white/20 transition-all"
+        >
+          {copied
+            ? <><Check className="w-3.5 h-3.5 text-emerald-400" /> Copied!</>
+            : <><Copy className="w-3.5 h-3.5" /> Copy text</>
+          }
+        </button>
+        <a
+          href={tweetUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.03] text-xs text-white/50 hover:text-white/80 hover:border-white/20 transition-all"
+        >
+          <span className="font-bold text-sm leading-none">𝕏</span>
+          Post on X
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function DecisionBadge({ decision, blocked }: { decision: string; blocked: boolean }) {
+  if (blocked)
+    return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20">BLOCKED</span>
+  if (decision === "escalate")
+    return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">ESCALATED</span>
+  if (decision === "audit")
+    return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/20">AUDITED</span>
+  return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-white/5 text-white/25 border border-white/8">ALLOWED</span>
+}
+
 function Debrief({
   mission,
   turnsUsed,
   triggeredViolations,
+  turns,
   onNext,
   onGrid,
 }: {
   mission: Mission
   turnsUsed: number
   triggeredViolations: EnforcementViolation[]
+  turns: AttackTurn[]
   onNext: () => void
   onGrid: () => void
 }) {
@@ -269,6 +344,51 @@ function Debrief({
         </div>
       </div>
 
+      {/* ── Attack timeline ── */}
+      {turns.length > 0 && (
+        <div className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-4">
+          <p className="text-[9px] uppercase tracking-widest text-white/25 font-medium mb-4">Attack timeline</p>
+          <div className="relative">
+            {/* Vertical connector */}
+            <div className="absolute left-[18px] top-3 bottom-3 w-px bg-white/6" />
+            <div className="space-y-3">
+              {turns.map((turn, i) => {
+                const isLast = i === turns.length - 1
+                const primaryCall =
+                  turn.toolCalls.find(tc => tc.enforcement.blocked) ??
+                  turn.toolCalls.find(tc => tc.enforcement.decision === "escalate") ??
+                  turn.toolCalls[0]
+                return (
+                  <div key={turn.id} className={`flex items-start gap-3 text-xs transition-opacity ${isLast ? "opacity-100" : "opacity-50"}`}>
+                    {/* Step dot */}
+                    <div className={`relative z-10 w-[9px] h-[9px] rounded-full shrink-0 mt-1 ${
+                      isLast ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" : "bg-white/15"
+                    }`} />
+                    {/* Prompt */}
+                    <p className="flex-1 text-white/45 leading-relaxed min-w-0 truncate">
+                      {turn.userPrompt.length > 72
+                        ? turn.userPrompt.slice(0, 72) + "…"
+                        : turn.userPrompt}
+                    </p>
+                    {/* Tool + decision */}
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      {primaryCall ? (
+                        <>
+                          <span className="font-mono text-[10px] text-white/20">{primaryCall.name}</span>
+                          <DecisionBadge decision={primaryCall.enforcement.decision} blocked={primaryCall.enforcement.blocked} />
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-white/15 italic">no tool call</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-red-500/15 bg-red-500/[0.03] px-5 py-4">
         <p className="text-[9px] uppercase tracking-widest text-red-400/50 mb-2">Real-world risk</p>
         <p className="text-sm text-white/50 leading-relaxed">{mission.realWorldRisk}</p>
@@ -288,6 +408,8 @@ function Debrief({
           All missions
         </button>
       </div>
+
+      <ShareCard mission={mission} turnsUsed={turnsUsed} />
     </div>
   )
 }
@@ -296,11 +418,13 @@ function MissionCard({
   mission,
   completed,
   locked,
+  completionRate,
   onClick,
 }: {
   mission: Mission
   completed: boolean
   locked: boolean
+  completionRate?: CompletionRate
   onClick: () => void
 }) {
   return (
@@ -339,9 +463,22 @@ function MissionCard({
         <span className={`text-[10px] font-medium ${locked ? "text-white/20" : "text-white/40"}`}>
           +{mission.points} pts
         </span>
-        {!locked && !completed && (
-          <ChevronRight className="w-3.5 h-3.5 text-white/20" />
-        )}
+        <div className="flex items-center gap-2">
+          {completionRate && completionRate.totalPlayers >= 3 && (
+            <span className={`text-[10px] tabular-nums font-medium ${
+              completionRate.rate < 30
+                ? "text-red-400/50"
+                : completionRate.rate < 70
+                  ? "text-amber-400/50"
+                  : "text-emerald-400/50"
+            }`}>
+              {completionRate.rate}% cleared
+            </span>
+          )}
+          {!locked && !completed && (
+            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+          )}
+        </div>
       </div>
     </button>
   )
@@ -359,6 +496,7 @@ export function MissionsMode() {
 
   // Persistence
   const [completions, setCompletions] = useState<MissionCompletion[]>([])
+  const [completionRates, setCompletionRates] = useState<Record<string, CompletionRate>>({})
 
   // Phase + agent selection
   const [phase, setPhase] = useState<Phase>("agents")
@@ -385,6 +523,9 @@ export function MissionsMode() {
 
   // Load completions from localStorage on mount
   useEffect(() => { setCompletions(loadCompletions()) }, [])
+
+  // Fetch global completion rates once on mount (public, no auth needed)
+  useEffect(() => { fetchCompletionRates().then(setCompletionRates) }, [])
 
   // When user signs in, merge DB completions → localStorage + sync local-only ones to DB
   useEffect(() => {
@@ -794,6 +935,7 @@ export function MissionsMode() {
               mission={mission}
               completed={agentCompletedIds.has(mission.id)}
               locked={!unlockedIds.has(mission.id)}
+              completionRate={completionRates[mission.id]}
               onClick={() => startMission(mission)}
             />
           ))}
@@ -983,6 +1125,7 @@ export function MissionsMode() {
           mission={activeMission}
           turnsUsed={turns.length}
           triggeredViolations={lastTriggeredViolations}
+          turns={turns}
           onNext={() => {
             if (nextMission) startMission(nextMission)
             else setPhase("grid")

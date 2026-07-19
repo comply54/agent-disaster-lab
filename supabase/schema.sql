@@ -75,3 +75,17 @@ group by p.id, p.username, c.agent_id
 order by agent_points desc;
 
 grant select on public.leaderboard_by_agent to anon, authenticated;
+
+-- ── 4. Mission completion rates (public, no auth required) ───────────────────
+-- Returns how many distinct players completed each mission + total player count.
+-- Rate = completions / total_players * 100
+
+create or replace view public.mission_completion_rates as
+select
+  mission_id,
+  count(distinct user_id)::int                                    as completions,
+  (select count(distinct user_id) from public.completions)::int   as total_players
+from public.completions
+group by mission_id;
+
+grant select on public.mission_completion_rates to anon, authenticated;

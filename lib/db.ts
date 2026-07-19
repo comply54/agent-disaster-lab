@@ -59,6 +59,36 @@ export async function syncLocalToDb(
   )
 }
 
+// ── Completion rates ──────────────────────────────────────────────────────────
+
+export interface CompletionRate {
+  missionId: string
+  completions: number
+  totalPlayers: number
+  rate: number // 0–100, rounded
+}
+
+export async function fetchCompletionRates(): Promise<Record<string, CompletionRate>> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from("mission_completion_rates")
+    .select("mission_id, completions, total_players")
+  if (!data) return {}
+  return Object.fromEntries(
+    data.map(r => [
+      r.mission_id as string,
+      {
+        missionId:    r.mission_id as string,
+        completions:  r.completions as number,
+        totalPlayers: r.total_players as number,
+        rate: (r.total_players as number) > 0
+          ? Math.round(((r.completions as number) / (r.total_players as number)) * 100)
+          : 0,
+      },
+    ])
+  )
+}
+
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 
 export interface LeaderboardEntry {
