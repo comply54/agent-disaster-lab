@@ -501,7 +501,7 @@ function MissionCard({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type Phase = "agents" | "grid" | "active" | "debrief"
+type Phase = "agents" | "grid" | "briefing" | "active" | "debrief"
 
 const GRAND_TOTAL_POINTS = ALL_MISSIONS.reduce((s, m) => s + m.points, 0)
 
@@ -591,6 +591,11 @@ export function MissionsMode() {
   const selectAgent = (agentId: string) => {
     setSelectedAgentId(agentId)
     setPhase("grid")
+  }
+
+  const openBriefing = (mission: Mission) => {
+    setActiveMission(mission)
+    setPhase("briefing")
   }
 
   const startMission = (mission: Mission) => {
@@ -951,7 +956,7 @@ export function MissionsMode() {
               completed={agentCompletedIds.has(mission.id)}
               locked={!unlockedIds.has(mission.id)}
               completionRate={completionRates[mission.id]}
-              onClick={() => startMission(mission)}
+              onClick={() => openBriefing(mission)}
             />
           ))}
         </div>
@@ -971,6 +976,85 @@ export function MissionsMode() {
             </button>
           </div>
         )}
+      </div>
+    )
+  }
+
+  // ── Render: briefing ─────────────────────────────────────────────────────────
+
+  const renderBriefing = () => {
+    if (!activeMission) return null
+    const agent = getAttackerAgent(activeMission.agentId)
+    const { briefing } = activeMission
+
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12 space-y-5">
+        {/* Header */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => setPhase("grid")}
+              className="text-[10px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
+            >
+              <ChevronLeft className="w-3 h-3" /> Back to missions
+            </button>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-mono text-white/20 mb-1">
+                {String(activeMission.number).padStart(2, "0")} · {agent?.name ?? activeMission.agentId}
+              </p>
+              <h1 className="text-2xl font-bold text-white">{activeMission.title}</h1>
+            </div>
+            <span className={`text-[10px] font-medium px-2 py-1 rounded border shrink-0 ${DIFFICULTY_COLORS[activeMission.difficulty]}`}>
+              {activeMission.difficulty}
+            </span>
+          </div>
+        </div>
+
+        {/* Real Incident */}
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-5 py-4 space-y-1.5">
+          <p className="text-[9px] uppercase tracking-widest text-amber-400/60 font-medium">Real Incident</p>
+          <p className="text-sm text-white/60 leading-relaxed">{briefing.incident}</p>
+        </div>
+
+        {/* Three info cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3 space-y-1.5">
+            <p className="text-[9px] uppercase tracking-widest text-white/25 font-medium">Your Goal</p>
+            <p className="text-xs text-white/55 leading-relaxed">{briefing.goal}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] px-4 py-3 space-y-1.5">
+            <p className="text-[9px] uppercase tracking-widest text-emerald-400/50 font-medium">Success Condition</p>
+            <p className="text-xs text-white/55 leading-relaxed">{briefing.successCriteria}</p>
+          </div>
+          <div className="rounded-xl border border-red-500/15 bg-red-500/[0.03] px-4 py-3 space-y-1.5">
+            <p className="text-[9px] uppercase tracking-widest text-red-400/50 font-medium">Defense</p>
+            <p className="text-xs text-white/55 leading-relaxed">{briefing.defense}</p>
+          </div>
+        </div>
+
+        {/* Objective */}
+        <div className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-4">
+          <p className="text-[9px] uppercase tracking-widest text-white/25 font-medium mb-2">Objective</p>
+          <p className="text-sm text-white/60 leading-relaxed">{activeMission.objective}</p>
+        </div>
+
+        {/* Begin Attack */}
+        <div className="flex items-center gap-3 pt-1">
+          <button
+            onClick={() => startMission(activeMission)}
+            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-red-500 hover:bg-red-400 text-white font-semibold text-sm transition-colors shadow-[0_0_20px_rgba(239,68,68,0.25)]"
+          >
+            <Swords className="w-4 h-4" /> Begin Attack
+          </button>
+          <button
+            onClick={() => setPhase("grid")}
+            className="px-5 py-3 rounded-lg border border-white/10 bg-white/[0.02] text-sm text-white/40 hover:text-white/70 hover:border-white/20 transition-all"
+          >
+            Choose different mission
+          </button>
+        </div>
       </div>
     )
   }
@@ -1242,10 +1326,11 @@ export function MissionsMode() {
         </div>
       </nav>
 
-      {phase === "agents"  && renderAgents()}
-      {phase === "grid"    && renderGrid()}
-      {phase === "active"  && renderActive()}
-      {phase === "debrief" && renderDebrief()}
+      {phase === "agents"   && renderAgents()}
+      {phase === "grid"     && renderGrid()}
+      {phase === "briefing" && renderBriefing()}
+      {phase === "active"   && renderActive()}
+      {phase === "debrief"  && renderDebrief()}
     </div>
   )
 }
