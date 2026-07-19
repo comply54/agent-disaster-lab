@@ -121,6 +121,15 @@ export interface EnforcementRequest {
   context?: Record<string, unknown>
 }
 
+// ── Missions ──────────────────────────────────────────────────────────────────
+
+export interface MissionCompletion {
+  missionId: string
+  completedAt: number
+  pointsEarned: number
+  attackTurns: number
+}
+
 // ── Attacker Mode ─────────────────────────────────────────────────────────────
 
 export interface AttackerAgent {
