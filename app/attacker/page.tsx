@@ -11,8 +11,8 @@ const MODES = [
     badgeClass: "text-amber-400 bg-amber-500/10 border-amber-500/25",
     title: "Missions",
     description:
-      "10 structured attack missions. Each one teaches a real AI governance concept — from CBN transaction limits to NDPA cross-border rules. Hints after failed attempts. Full debrief after every success.",
-    detail: "10 missions · TellerAI · Nigerian Fintech",
+      "25 structured attack missions across 3 AI agents — Nigerian fintech, healthcare, and insurance. Each teaches a real AI governance concept. Hints after failed attempts. Full debrief after every success.",
+    detail: "25 missions · 3 agents · Fintech, Healthcare, Insurance",
     cta: "Start missions",
     ctaClass: "bg-white text-black hover:bg-white/90",
     locked: false,

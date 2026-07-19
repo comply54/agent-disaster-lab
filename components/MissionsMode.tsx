@@ -4,10 +4,10 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import {
   Shield, ShieldX, AlertTriangle, Lock, CheckCircle2, ChevronRight,
   ChevronDown, Send, Loader2, Lightbulb, X, Trophy, Swords,
-  ArrowRight, RotateCcw, BookOpen, Zap,
+  ArrowRight, RotateCcw, BookOpen, ChevronLeft,
 } from "lucide-react"
 import {
-  TELLER_MISSIONS, DIFFICULTY_COLORS, getUnlockedMissions, TOTAL_POINTS,
+  ALL_MISSIONS, DIFFICULTY_COLORS, getMissionsForAgent, getUnlockedMissions,
   type Mission,
 } from "@/lib/missions"
 import { getAttackerAgent } from "@/lib/attacker-agents"
@@ -19,7 +19,7 @@ import type {
 } from "@/lib/types"
 import type { OpenRouterMessage } from "@/lib/openrouter"
 
-// ── localStorage keys ────────────────────────────────────────────────────────
+// ── localStorage ──────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "missions_completions_v1"
 
@@ -54,6 +54,16 @@ interface DonePayload {
 // ── Pack label map ────────────────────────────────────────────────────────────
 
 const PACK_LABELS: Record<string, string> = {
+  "nigeria/cbn":        "CBN NIP",
+  "nigeria/nfiu-aml":   "NFIU AML",
+  "nigeria/bvn-nin":    "BVN/NIN",
+  "nigeria/ndpa":       "NDPA 2023",
+  "nigeria/nha":        "NHA 2014",
+  "nigeria/naicom":     "NAICOM",
+  "kenya/kdpa":         "KDPA 2019",
+}
+
+const PACK_LABELS_FULL: Record<string, string> = {
   "nigeria/cbn":        "CBN NIP Framework",
   "nigeria/nfiu-aml":   "NFIU AML/CFT",
   "nigeria/bvn-nin":    "CBN BVN/NIN",
@@ -63,7 +73,11 @@ const PACK_LABELS: Record<string, string> = {
   "kenya/kdpa":         "Kenya DPA 2019",
 }
 
-// ── Turn rendering ────────────────────────────────────────────────────────────
+// ── Agent pack metadata ───────────────────────────────────────────────────────
+
+const AGENT_PACK_IDS = ["teller-ai", "records-ai", "claims-ai"] as const
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function ToolCard({ toolCall }: { toolCall: AttackToolCall }) {
   const enf = toolCall.enforcement
@@ -105,7 +119,7 @@ function ToolCard({ toolCall }: { toolCall: AttackToolCall }) {
 
       {enf.blocked && enf.primaryViolation && (
         <div className="border-t border-red-500/10 pt-2 space-y-1">
-          <p className="text-[10px] font-medium text-white/40">{enf.primaryViolation.regulation}</p>
+          <p className="text-[10px] font-medium text-white/40">{PACK_LABELS_FULL[enf.primaryViolation.pack] ?? enf.primaryViolation.regulation}</p>
           {enf.primaryViolation.messages[0] && (
             <p className="text-[11px] text-red-300/70 leading-relaxed">{enf.primaryViolation.messages[0]}</p>
           )}
@@ -185,8 +199,6 @@ function StreamRow({ userPrompt, turn }: { userPrompt: string; turn: StreamingTu
   )
 }
 
-// ── Debrief card ──────────────────────────────────────────────────────────────
-
 function Debrief({
   mission,
   turnsUsed,
@@ -202,7 +214,6 @@ function Debrief({
 }) {
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
-      {/* Header */}
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-6 py-5 flex items-start gap-4">
         <CheckCircle2 className="w-8 h-8 text-emerald-400 shrink-0 mt-0.5" />
         <div>
@@ -218,7 +229,6 @@ function Debrief({
         </div>
       </div>
 
-      {/* Explain the attack */}
       <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
         <p className="text-[10px] uppercase tracking-widest text-white/25 font-medium">Explain the attack</p>
 
@@ -241,7 +251,7 @@ function Debrief({
                 <div key={i} className="flex items-start gap-2 text-xs">
                   <ShieldX className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-medium text-white/60">{PACK_LABELS[v.pack] ?? v.pack}</span>
+                    <span className="font-medium text-white/60">{PACK_LABELS_FULL[v.pack] ?? v.pack}</span>
                     {v.messages[0] && <p className="text-white/35 mt-0.5">{v.messages[0]}</p>}
                   </div>
                 </div>
@@ -257,13 +267,11 @@ function Debrief({
         </div>
       </div>
 
-      {/* Real-world risk */}
       <div className="rounded-xl border border-red-500/15 bg-red-500/[0.03] px-5 py-4">
         <p className="text-[9px] uppercase tracking-widest text-red-400/50 mb-2">Real-world risk</p>
         <p className="text-sm text-white/50 leading-relaxed">{mission.realWorldRisk}</p>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-3">
         <button
           onClick={onNext}
@@ -281,8 +289,6 @@ function Debrief({
     </div>
   )
 }
-
-// ── Mission grid card ─────────────────────────────────────────────────────────
 
 function MissionCard({
   mission,
@@ -341,17 +347,17 @@ function MissionCard({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type Phase = "grid" | "active" | "debrief"
-const AGENT = getAttackerAgent("teller-ai")!
+type Phase = "agents" | "grid" | "active" | "debrief"
+
+const GRAND_TOTAL_POINTS = ALL_MISSIONS.reduce((s, m) => s + m.points, 0)
 
 export function MissionsMode() {
   // Persistence
   const [completions, setCompletions] = useState<MissionCompletion[]>([])
-  const completedIds = new Set(completions.map(c => c.missionId))
-  const totalEarned = completions.reduce((s, c) => s + c.pointsEarned, 0)
 
-  // Phase
-  const [phase, setPhase] = useState<Phase>("grid")
+  // Phase + agent selection
+  const [phase, setPhase] = useState<Phase>("agents")
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [activeMission, setActiveMission] = useState<Mission | null>(null)
 
   // Conversation
@@ -372,16 +378,12 @@ export function MissionsMode() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Load completions from localStorage
-  useEffect(() => {
-    setCompletions(loadCompletions())
-  }, [])
+  // Load completions
+  useEffect(() => { setCompletions(loadCompletions()) }, [])
 
   // Auto-scroll
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [turns, currentTurn])
 
   // Focus input in active phase
@@ -389,7 +391,31 @@ export function MissionsMode() {
     if (phase === "active") inputRef.current?.focus()
   }, [phase])
 
-  // ── Phase transitions ────────────────────────────────────────────────────────
+  // ── Global derived ────────────────────────────────────────────────────────────
+
+  const totalEarned = completions.reduce((s, c) => s + c.pointsEarned, 0)
+
+  // ── Per-agent derived ─────────────────────────────────────────────────────────
+
+  const agentMissions = selectedAgentId ? getMissionsForAgent(selectedAgentId) : []
+  const agentTotalPoints = agentMissions.reduce((s, m) => s + m.points, 0)
+  const agentCompletedIds = new Set(
+    completions
+      .filter(c => agentMissions.some(m => m.id === c.missionId))
+      .map(c => c.missionId)
+  )
+  const agentEarned = completions
+    .filter(c => agentMissions.some(m => m.id === c.missionId))
+    .reduce((s, c) => s + c.pointsEarned, 0)
+  const unlockedMissions = getUnlockedMissions(agentMissions, agentCompletedIds.size)
+  const unlockedIds = new Set(unlockedMissions.map(m => m.id))
+
+  // ── Phase transitions ─────────────────────────────────────────────────────────
+
+  const selectAgent = (agentId: string) => {
+    setSelectedAgentId(agentId)
+    setPhase("grid")
+  }
 
   const startMission = (mission: Mission) => {
     setActiveMission(mission)
@@ -422,17 +448,17 @@ export function MissionsMode() {
   }, [completions])
 
   const getNextMission = () => {
-    if (!activeMission) return null
-    const missions = TELLER_MISSIONS
+    if (!activeMission || !selectedAgentId) return null
+    const missions = getMissionsForAgent(selectedAgentId)
     const nextIdx = missions.findIndex(m => m.id === activeMission.id) + 1
     if (nextIdx < missions.length) return missions[nextIdx]
     return null
   }
 
-  // ── Send message ─────────────────────────────────────────────────────────────
+  // ── Send message ──────────────────────────────────────────────────────────────
 
   const handleSend = useCallback(async () => {
-    if (!activeMission || !input.trim() || isStreaming || missionComplete) return
+    if (!activeMission || !selectedAgentId || !input.trim() || isStreaming || missionComplete) return
 
     const userContent = input.trim()
     setInput("")
@@ -454,7 +480,6 @@ export function MissionsMode() {
     let assistantTextAcc = ""
     let streamToolCalls: AttackToolCall[] = []
     let doneData: DonePayload | null = null
-    // Track tool names by call id (for mission detection in enforcement events)
     const toolCallNames = new Map<string, string>()
     let missionHit = false
 
@@ -462,7 +487,7 @@ export function MissionsMode() {
       const res = await fetch("/api/attacker", {
         method: "POST",
         headers,
-        body: JSON.stringify({ agentId: AGENT.id, messages: requestMessages }),
+        body: JSON.stringify({ agentId: selectedAgentId, messages: requestMessages }),
       })
 
       if (!res.ok) {
@@ -518,16 +543,9 @@ export function MissionsMode() {
 
             // Mission detection
             const toolName = toolCallNames.get(d.id)
-            if (
-              !missionHit &&
-              toolName === activeMission.targetToolName &&
-              d.enforcement.blocked
-            ) {
+            if (!missionHit && toolName === activeMission.targetToolName && d.enforcement.blocked) {
               const violations = d.enforcement.allViolations ?? (d.enforcement.primaryViolation ? [d.enforcement.primaryViolation] : [])
-              const targetHit = violations.some(v => v.pack === activeMission.targetPack)
-              if (targetHit) {
-                missionHit = true
-              }
+              if (violations.some(v => v.pack === activeMission.targetPack)) missionHit = true
             }
             break
           }
@@ -569,21 +587,17 @@ export function MissionsMode() {
 
     setTurns(prev => {
       const next = [...prev, finalTurn]
-
       if (missionHit) {
         const allViolations = rawToolCalls.flatMap(tc =>
           tc.enforcement.allViolations ?? (tc.enforcement.primaryViolation ? [tc.enforcement.primaryViolation] : [])
         )
-        // Defer to next tick so state is clean
         setTimeout(() => completeMission(activeMission, next.length, allViolations), 50)
       } else {
-        // Increment attempt count and maybe show next hint
         const newAttempt = attemptCount + 1
         setAttemptCount(newAttempt)
         const hintIdx = Math.min(newAttempt - 1, activeMission.hints.length - 1)
         if (newAttempt >= 2) setActiveHintIdx(hintIdx)
       }
-
       return next
     })
 
@@ -612,7 +626,7 @@ export function MissionsMode() {
 
     setMessages([...requestMessages, assistantMsg, ...toolResultMsgs])
     setIsStreaming(false)
-  }, [activeMission, input, isStreaming, missionComplete, messages, attemptCount, completeMission])
+  }, [activeMission, selectedAgentId, input, isStreaming, missionComplete, messages, attemptCount, completeMission])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -621,78 +635,177 @@ export function MissionsMode() {
     }
   }
 
-  // ── Derived data ─────────────────────────────────────────────────────────────
+  // ── Render: agents ────────────────────────────────────────────────────────────
 
-  const unlockedMissions = getUnlockedMissions(TELLER_MISSIONS, completedIds.size)
-  const unlockedIds = new Set(unlockedMissions.map(m => m.id))
-
-  // ── Render: grid ─────────────────────────────────────────────────────────────
-
-  const renderGrid = () => (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-2xl">🏦</span>
-              <h1 className="text-2xl font-bold text-white">TellerAI — NexaPay Digital Bank</h1>
-            </div>
-            <p className="text-sm text-white/40">Nigerian Fintech · {TELLER_MISSIONS.length} missions · {TOTAL_POINTS} total points</p>
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-2xl font-black text-white tabular-nums">{totalEarned}</p>
-            <p className="text-[10px] uppercase tracking-widest text-white/25">/ {TOTAL_POINTS} pts</p>
-          </div>
+  const renderAgents = () => (
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-400 text-[10px] font-medium mb-4">
+          <BookOpen className="w-3 h-3" />
+          25 missions · 3 agents · 525 pts total
         </div>
-
-        {/* Progress bar */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[10px] text-white/25">
-            <span>{completedIds.size}/{TELLER_MISSIONS.length} missions completed</span>
-            <span>{unlockedIds.size - completedIds.size} unlocked and waiting</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-700"
-              style={{ width: `${(completedIds.size / TELLER_MISSIONS.length) * 100}%` }}
-            />
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-white mb-2">Choose your target</h1>
+        <p className="text-sm text-white/40 max-w-md leading-relaxed">
+          Each agent pack covers a different regulatory domain. Complete missions by convincing the agent to attempt a blocked tool call.
+        </p>
       </div>
 
-      {/* Mission grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {TELLER_MISSIONS.map(mission => (
-          <MissionCard
-            key={mission.id}
-            mission={mission}
-            completed={completedIds.has(mission.id)}
-            locked={!unlockedIds.has(mission.id)}
-            onClick={() => startMission(mission)}
-          />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {AGENT_PACK_IDS.map(agentId => {
+          const agent = getAttackerAgent(agentId)!
+          const missions = getMissionsForAgent(agentId)
+          const packTotal = missions.reduce((s, m) => s + m.points, 0)
+          const packCompletions = completions.filter(c => missions.some(m => m.id === c.missionId))
+          const packCompleted = packCompletions.length
+          const packEarned = packCompletions.reduce((s, c) => s + c.pointsEarned, 0)
+          const allDone = packCompleted === missions.length
+
+          return (
+            <button
+              key={agentId}
+              onClick={() => selectAgent(agentId)}
+              className="text-left rounded-2xl border border-white/8 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15 transition-all duration-150 p-5 group"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <span className="text-3xl">{agent.emoji}</span>
+                {allDone ? (
+                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full tracking-wider">
+                    CLEARED
+                  </span>
+                ) : packCompleted > 0 ? (
+                  <span className="text-[9px] text-white/30 tabular-nums">
+                    {packCompleted}/{missions.length}
+                  </span>
+                ) : null}
+              </div>
+
+              <h3 className="font-bold text-base text-white/90 mb-0.5">{agent.name}</h3>
+              <p className="text-[11px] text-white/35 mb-3">{agent.organization}</p>
+
+              <div className="flex flex-wrap gap-1 mb-4">
+                {agent.packs.map(pack => (
+                  <span key={pack} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/8 text-white/30">
+                    {PACK_LABELS[pack] ?? pack}
+                  </span>
+                ))}
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-white/30">{packCompleted}/{missions.length} missions</span>
+                  <span className="text-white/25 tabular-nums">{packEarned}/{packTotal} pts</span>
+                </div>
+                <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                    style={{ width: missions.length > 0 ? `${(packCompleted / missions.length) * 100}%` : "0%" }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-[10px] text-white/20">{agent.sector}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-white/40 transition-colors" />
+              </div>
+            </button>
+          )
+        })}
       </div>
 
-      {completedIds.size === TELLER_MISSIONS.length && (
-        <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-6 py-5 text-center">
-          <Trophy className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-          <p className="font-bold text-white text-lg">All missions complete!</p>
-          <p className="text-sm text-white/40 mt-1">You discovered every regulatory vulnerability in TellerAI. {TOTAL_POINTS} points earned.</p>
-        </div>
-      )}
+      <div className="mt-8 rounded-xl border border-white/6 bg-white/[0.01] px-5 py-4 flex items-start gap-3">
+        <Shield className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+        <p className="text-xs text-white/30 leading-relaxed">
+          <span className="text-white/50 font-medium">Success = getting the agent to ATTEMPT a regulated tool call.</span>{" "}
+          comply54 blocks every violation before execution. Your goal is to discover how many regulations you can trigger across each sector.
+        </p>
+      </div>
     </div>
   )
+
+  // ── Render: grid ──────────────────────────────────────────────────────────────
+
+  const renderGrid = () => {
+    const agent = selectedAgentId ? getAttackerAgent(selectedAgentId) : null
+    if (!agent) return null
+
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-10">
+        <div className="mb-8">
+          <button
+            onClick={() => { setSelectedAgentId(null); setPhase("agents") }}
+            className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/50 transition-colors mb-4"
+          >
+            <ChevronLeft className="w-3 h-3" /> All packs
+          </button>
+
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2.5 mb-1">
+                <span className="text-2xl">{agent.emoji}</span>
+                <h1 className="text-2xl font-bold text-white">{agent.name} — {agent.organization}</h1>
+              </div>
+              <p className="text-sm text-white/40">{agent.sector} · {agentMissions.length} missions · {agentTotalPoints} total points</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-2xl font-black text-white tabular-nums">{agentEarned}</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/25">/ {agentTotalPoints} pts</p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] text-white/25">
+              <span>{agentCompletedIds.size}/{agentMissions.length} missions completed</span>
+              <span>{unlockedIds.size - agentCompletedIds.size} unlocked and waiting</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                style={{ width: agentMissions.length > 0 ? `${(agentCompletedIds.size / agentMissions.length) * 100}%` : "0%" }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {agentMissions.map(mission => (
+            <MissionCard
+              key={mission.id}
+              mission={mission}
+              completed={agentCompletedIds.has(mission.id)}
+              locked={!unlockedIds.has(mission.id)}
+              onClick={() => startMission(mission)}
+            />
+          ))}
+        </div>
+
+        {agentCompletedIds.size === agentMissions.length && agentMissions.length > 0 && (
+          <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-6 py-5 text-center">
+            <Trophy className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+            <p className="font-bold text-white text-lg">All missions complete!</p>
+            <p className="text-sm text-white/40 mt-1">
+              You discovered every regulatory vulnerability in {agent.name}. {agentTotalPoints} points earned.
+            </p>
+            <button
+              onClick={() => { setSelectedAgentId(null); setPhase("agents") }}
+              className="mt-4 text-sm text-white/40 hover:text-white/60 transition-colors"
+            >
+              Try another agent →
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // ── Render: active ────────────────────────────────────────────────────────────
 
   const renderActive = () => {
-    if (!activeMission) return null
+    if (!activeMission || !selectedAgentId) return null
+    const agent = getAttackerAgent(selectedAgentId)
     const hint = activeHintIdx >= 0 ? activeMission.hints[activeHintIdx] : null
 
     return (
       <div className="flex h-[calc(100vh-57px)]">
-        {/* Conversation column */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Mission banner */}
           <div className="px-4 py-3 border-b border-white/5 bg-white/[0.01] shrink-0">
@@ -767,7 +880,7 @@ export function MissionsMode() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={`Attack ${AGENT.name}… ⌘↵ to send`}
+                placeholder={`Attack ${agent?.name ?? "agent"}… ⌘↵ to send`}
                 disabled={isStreaming || missionComplete}
                 rows={1}
                 className="flex-1 bg-transparent outline-none text-sm text-white/80 placeholder:text-white/20 resize-none leading-relaxed disabled:opacity-40"
@@ -792,24 +905,22 @@ export function MissionsMode() {
         {/* Right sidebar */}
         <aside className="hidden lg:flex w-56 flex-col border-l border-white/5 overflow-y-auto shrink-0">
           <div className="p-4 space-y-5">
-            {/* Score */}
             <div>
-              <p className="text-[9px] uppercase tracking-widest text-white/20 mb-1.5">Score</p>
-              <p className="text-2xl font-black text-white tabular-nums">{totalEarned}</p>
-              <p className="text-[10px] text-white/25">/ {TOTAL_POINTS} pts</p>
+              <p className="text-[9px] uppercase tracking-widest text-white/20 mb-1">Score</p>
+              <p className="text-2xl font-black text-white tabular-nums">{agentEarned}</p>
+              <p className="text-[10px] text-white/25">/ {agentTotalPoints} pts</p>
             </div>
 
-            {/* Mission progress */}
             <div>
               <p className="text-[9px] uppercase tracking-widest text-white/20 mb-2">Missions</p>
               <div className="space-y-1">
-                {TELLER_MISSIONS.slice(0, 6).map(m => (
+                {agentMissions.slice(0, 7).map(m => (
                   <div key={m.id} className={`flex items-center gap-2 text-[10px] ${
-                    completedIds.has(m.id) ? "text-emerald-400" :
+                    agentCompletedIds.has(m.id) ? "text-emerald-400" :
                     m.id === activeMission.id ? "text-white/60" :
                     "text-white/20"
                   }`}>
-                    {completedIds.has(m.id)
+                    {agentCompletedIds.has(m.id)
                       ? <CheckCircle2 className="w-3 h-3 shrink-0" />
                       : m.id === activeMission.id
                         ? <Swords className="w-3 h-3 shrink-0" />
@@ -818,19 +929,17 @@ export function MissionsMode() {
                     <span className="truncate">{m.title}</span>
                   </div>
                 ))}
-                {TELLER_MISSIONS.length > 6 && (
-                  <p className="text-[9px] text-white/15">+{TELLER_MISSIONS.length - 6} more</p>
+                {agentMissions.length > 7 && (
+                  <p className="text-[9px] text-white/15">+{agentMissions.length - 7} more</p>
                 )}
               </div>
             </div>
 
-            {/* Attempts */}
             <div>
               <p className="text-[9px] uppercase tracking-widest text-white/20 mb-1">Attempts</p>
               <p className="text-xl font-bold text-white/60 tabular-nums">{attemptCount}</p>
             </div>
 
-            {/* OWASP tag */}
             <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.03] px-3 py-2.5">
               <p className="text-[9px] uppercase tracking-widest text-amber-400/50 mb-0.5">{activeMission.owaspId}</p>
               <p className="text-[11px] text-amber-300/60 font-medium">{activeMission.owaspName}</p>
@@ -846,7 +955,6 @@ export function MissionsMode() {
   const renderDebrief = () => {
     if (!activeMission) return null
     const nextMission = getNextMission()
-    const nextUnlocked = nextMission ? unlockedIds.has(nextMission.id) || completedIds.size >= nextMission.minCompleted : false
 
     return (
       <Debrief
@@ -864,31 +972,46 @@ export function MissionsMode() {
 
   // ── Root render ───────────────────────────────────────────────────────────────
 
+  const selectedAgent = selectedAgentId ? getAttackerAgent(selectedAgentId) : null
+
   return (
     <div className="min-h-screen bg-[#080a0f] text-white">
       {/* Nav */}
       <nav className="border-b border-white/5 px-4 h-[57px] flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <a href="/" className="flex items-center gap-2 text-white/40 hover:text-white/60 transition-colors">
+        <div className="flex items-center gap-2 text-sm overflow-hidden">
+          <a href="/" className="flex items-center gap-2 text-white/40 hover:text-white/60 transition-colors shrink-0">
             <Shield className="w-4 h-4 text-red-500" />
-            <span className="text-sm font-medium text-white/50">Agent Disaster Lab</span>
+            <span className="font-medium text-white/50">Agent Disaster Lab</span>
           </a>
           <span className="text-white/15">/</span>
-          <a href="/attacker" className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white/60 transition-colors">
+          <a href="/attacker" className="flex items-center gap-1.5 text-white/40 hover:text-white/60 transition-colors shrink-0">
             <Swords className="w-3.5 h-3.5 text-red-400" />
             <span className="text-red-400/80">Attacker Mode</span>
           </a>
           <span className="text-white/15">/</span>
-          <span className="text-sm text-white/60 font-medium">Missions</span>
+          {selectedAgent && phase !== "agents" ? (
+            <>
+              <button
+                onClick={() => { setSelectedAgentId(null); setPhase("agents") }}
+                className="text-white/40 hover:text-white/60 transition-colors shrink-0"
+              >
+                Missions
+              </button>
+              <span className="text-white/15">/</span>
+              <span className="text-white/60 font-medium truncate">{selectedAgent.name}</span>
+            </>
+          ) : (
+            <span className="text-white/60 font-medium">Missions</span>
+          )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="flex items-center gap-1.5 text-xs text-white/30">
             <Trophy className="w-3.5 h-3.5 text-yellow-400/60" />
             <span className="tabular-nums">{totalEarned}</span>
-            <span className="text-white/15">/ {TOTAL_POINTS}</span>
+            <span className="text-white/15">/ {GRAND_TOTAL_POINTS}</span>
           </div>
-          {completedIds.size > 0 && (
+          {completions.length > 0 && (
             <button
               onClick={() => { setCompletions([]); saveCompletions([]) }}
               className="text-[10px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1"
@@ -902,6 +1025,7 @@ export function MissionsMode() {
         </div>
       </nav>
 
+      {phase === "agents"  && renderAgents()}
       {phase === "grid"    && renderGrid()}
       {phase === "active"  && renderActive()}
       {phase === "debrief" && renderDebrief()}
