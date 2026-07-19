@@ -16,6 +16,8 @@ import { readSSE } from "@/lib/sse"
 import { useAuth } from "@/lib/auth-context"
 import { saveCompletion, syncLocalToDb, loadUserCompletions, fetchCompletionRates } from "@/lib/db"
 import type { CompletionRate } from "@/lib/db"
+import { saveBlueTeamRecord } from "@/lib/blue-team-store"
+import { getNewlyEarnedBadges, TIER_COLORS } from "@/lib/badges"
 import type {
   AttackToolCall, AttackTurn, EnforcementResult, EnforcementViolation,
   MissionCompletion,
@@ -279,6 +281,56 @@ function ShareCard({ mission, turnsUsed }: { mission: Mission; turnsUsed: number
   )
 }
 
+function UserMenu({ username, signOut }: { username: string | null; signOut: () => Promise<void> }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/8 hover:border-white/20 px-2.5 py-1 rounded-lg transition-all"
+      >
+        <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50">
+          {username?.[0]?.toUpperCase() ?? "?"}
+        </div>
+        <span className="max-w-[80px] truncate">{username ?? "…"}</span>
+      </button>
+
+      {open && (
+        <>
+          {/* backdrop */}
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1.5 z-20 w-44 rounded-xl border border-white/10 bg-[#111318] shadow-xl overflow-hidden">
+            {username && (
+              <a
+                href={`/u/${username}`}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-3 py-2.5 text-xs text-white/55 hover:text-white/90 hover:bg-white/5 transition-colors"
+              >
+                <span>👤</span> View profile
+              </a>
+            )}
+            <a
+              href="/leaderboard"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 text-xs text-white/55 hover:text-white/90 hover:bg-white/5 transition-colors"
+            >
+              <span>🏆</span> Leaderboard
+            </a>
+            <div className="border-t border-white/6 mx-2 my-1" />
+            <button
+              onClick={async () => { setOpen(false); await signOut() }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-red-400/60 hover:text-red-400 hover:bg-red-500/5 transition-colors"
+            >
+              <span>↪</span> Sign out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function DecisionBadge({ decision, blocked }: { decision: string; blocked: boolean }) {
   if (blocked)
     return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20">BLOCKED</span>
@@ -294,6 +346,8 @@ function Debrief({
   turnsUsed,
   triggeredViolations,
   turns,
+  allCompletions,
+  username,
   onNext,
   onGrid,
 }: {
@@ -301,9 +355,14 @@ function Debrief({
   turnsUsed: number
   triggeredViolations: EnforcementViolation[]
   turns: AttackTurn[]
+  allCompletions: MissionCompletion[]
+  username: string | null
   onNext: () => void
   onGrid: () => void
 }) {
+  const completionsBefore = allCompletions.filter(c => c.missionId !== mission.id)
+  const newBadges = getNewlyEarnedBadges(completionsBefore, allCompletions)
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-6 py-5 flex items-start gap-4">
@@ -320,6 +379,28 @@ function Debrief({
           <p className="text-[10px] text-white/25 uppercase tracking-widest">points</p>
         </div>
       </div>
+
+      {newBadges.length > 0 && (
+        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/[0.04] px-5 py-4">
+          <p className="text-[10px] uppercase tracking-widest text-yellow-400/60 font-medium mb-3">
+            {newBadges.length === 1 ? "New badge unlocked" : `${newBadges.length} badges unlocked`}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {newBadges.map(badge => (
+              <div
+                key={badge.id}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${TIER_COLORS[badge.tier]}`}
+              >
+                <span className="text-base leading-none">{badge.emoji}</span>
+                <div>
+                  <p className="text-[11px] font-semibold leading-tight">{badge.name}</p>
+                  <p className="text-[9px] text-white/30 leading-tight mt-0.5">{badge.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
         <p className="text-[10px] uppercase tracking-widest text-white/25 font-medium">Explain the attack</p>
@@ -409,7 +490,7 @@ function Debrief({
         <p className="text-sm text-white/50 leading-relaxed">{mission.realWorldRisk}</p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={onNext}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black font-medium text-sm hover:bg-white/90 transition-colors"
@@ -422,6 +503,20 @@ function Debrief({
         >
           All scenarios
         </button>
+        <a
+          href={`/blue-team/${mission.id}`}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-blue-500/30 bg-blue-500/[0.06] text-sm text-blue-400/80 hover:text-blue-300 hover:border-blue-500/50 hover:bg-blue-500/[0.12] transition-all"
+        >
+          <span className="text-base leading-none">🛡</span> Blue Team Report
+        </a>
+        {username && (
+          <a
+            href={`/u/${username}`}
+            className="px-5 py-2.5 rounded-lg border border-white/8 bg-white/[0.02] text-sm text-white/35 hover:text-white/60 hover:border-white/15 transition-all"
+          >
+            My profile →
+          </a>
+        )}
       </div>
 
       <ShareCard mission={mission} turnsUsed={turnsUsed} />
@@ -507,7 +602,7 @@ const GRAND_TOTAL_POINTS = ALL_MISSIONS.reduce((s, m) => s + m.points, 0)
 
 export function MissionsMode() {
   // Auth
-  const { user, username, openAuthModal } = useAuth()
+  const { user, username, openAuthModal, signOut } = useAuth()
 
   // Persistence
   const [completions, setCompletions] = useState<MissionCompletion[]>([])
@@ -613,7 +708,12 @@ export function MissionsMode() {
     setPhase("active")
   }
 
-  const completeMission = useCallback((mission: Mission, turnCount: number, violations: EnforcementViolation[]) => {
+  const completeMission = useCallback((
+    mission: Mission,
+    turnCount: number,
+    violations: EnforcementViolation[],
+    winningToolCall?: { name: string; params: Record<string, unknown> },
+  ) => {
     const completion: MissionCompletion = {
       missionId: mission.id,
       completedAt: Date.now(),
@@ -627,6 +727,22 @@ export function MissionsMode() {
     setLastTriggeredViolations(violations)
     setMissionComplete(true)
     setPhase("debrief")
+
+    // Save blue team record for the defense report
+    if (winningToolCall) {
+      const agent = getAttackerAgent(mission.agentId)
+      if (agent) {
+        saveBlueTeamRecord({
+          missionId:   mission.id,
+          toolName:    winningToolCall.name,
+          toolParams:  winningToolCall.params,
+          violations,
+          sectorClass: agent.sectorClass,
+          completedAt: Date.now(),
+          attackTurns: turnCount,
+        })
+      }
+    }
   }, [completions])
 
   const getNextMission = () => {
@@ -773,7 +889,15 @@ export function MissionsMode() {
         const allViolations = rawToolCalls.flatMap(tc =>
           tc.enforcement.allViolations ?? (tc.enforcement.primaryViolation ? [tc.enforcement.primaryViolation] : [])
         )
-        setTimeout(() => completeMission(activeMission, next.length, allViolations), 50)
+        const winningRaw = rawToolCalls.find(tc => {
+          const vios = tc.enforcement.allViolations ?? (tc.enforcement.primaryViolation ? [tc.enforcement.primaryViolation] : [])
+          return tc.name === activeMission.targetToolName && vios.some(v => v.pack === activeMission.targetPack)
+        })
+        const winningToolCall = winningRaw ? {
+          name: winningRaw.name,
+          params: (() => { try { return JSON.parse(winningRaw.arguments) } catch { return {} } })(),
+        } : undefined
+        setTimeout(() => completeMission(activeMission, next.length, allViolations, winningToolCall), 50)
       } else {
         const newAttempt = attemptCount + 1
         setAttemptCount(newAttempt)
@@ -1225,6 +1349,8 @@ export function MissionsMode() {
           turnsUsed={turns.length}
           triggeredViolations={lastTriggeredViolations}
           turns={turns}
+          allCompletions={completions}
+          username={username}
           onNext={() => {
             if (nextMission) startMission(nextMission)
             else setPhase("grid")
@@ -1309,12 +1435,7 @@ export function MissionsMode() {
             </button>
           )}
           {user ? (
-            <div className="flex items-center gap-1.5 text-xs text-white/40 border border-white/8 px-2.5 py-1 rounded-lg">
-              <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50">
-                {username?.[0]?.toUpperCase() ?? "?"}
-              </div>
-              <span className="max-w-[80px] truncate">{username ?? "…"}</span>
-            </div>
+            <UserMenu username={username} signOut={signOut} />
           ) : (
             <button
               onClick={openAuthModal}

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Shield, Swords, BookOpen, Zap, ChevronRight, Lock } from "lucide-react"
+import { Shield, Swords, BookOpen, Zap, ChevronRight } from "lucide-react"
 
 const MODES = [
   {
@@ -15,7 +15,6 @@ const MODES = [
     detail: "25 scenarios · 3 agents · Fintech, Healthcare, Insurance",
     cta: "Start simulating",
     ctaClass: "bg-white text-black hover:bg-white/90",
-    locked: false,
   },
   {
     href: "/attacker/explore",
@@ -28,7 +27,6 @@ const MODES = [
     detail: "4 agents · Multi-sector · 10 free turns/24h",
     cta: "Begin red teaming",
     ctaClass: "border border-white/10 bg-white/[0.03] text-white/60 hover:text-white/90 hover:border-white/20",
-    locked: false,
   },
 ]
 
@@ -92,6 +90,30 @@ export default function AttackerLanding() {
               </div>
             </Link>
           ))}
+
+          {/* Blue Team — post-completion mode */}
+          <div className="rounded-2xl border border-blue-500/15 bg-blue-500/[0.03] p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/8 border border-blue-500/15 flex items-center justify-center shrink-0 text-2xl">
+                🛡
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-lg font-bold text-white">Blue Team</h2>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-blue-400 bg-blue-500/10 border-blue-500/25">
+                    Defense report
+                  </span>
+                </div>
+                <p className="text-sm text-white/40 leading-relaxed mb-3">
+                  After completing an Incident Simulation, switch to the defender's perspective.
+                  See the exact comply54 policy that blocked the attack, replay the tool call against the live enforcement API, and share your defense report.
+                </p>
+                <p className="text-[11px] text-blue-400/40">
+                  Unlocked automatically after each scenario completion → Blue Team Report button in debrief
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* What comply54 does */}

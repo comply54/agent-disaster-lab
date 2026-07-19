@@ -81,12 +81,15 @@ export default function LeaderboardPage() {
 
         <div className="flex items-center gap-3">
           {user ? (
-            <div className="flex items-center gap-2 text-xs text-white/40">
+            <a
+              href={username ? `/u/${username}` : "#"}
+              className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
               <div className="w-6 h-6 rounded-full bg-white/8 flex items-center justify-center text-[10px] font-bold text-white/50">
                 {username?.[0]?.toUpperCase() ?? "?"}
               </div>
               <span>{username ?? "…"}</span>
-            </div>
+            </a>
           ) : (
             <button
               onClick={openAuthModal}
