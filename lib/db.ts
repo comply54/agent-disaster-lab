@@ -8,9 +8,12 @@ export async function saveCompletion(
   completion: MissionCompletion
 ): Promise<void> {
   const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
   const agentId = ALL_MISSIONS.find(m => m.id === completion.missionId)?.agentId ?? "unknown"
   await supabase.from("completions").upsert(
     {
+      user_id:       user.id,
       mission_id:    completion.missionId,
       agent_id:      agentId,
       points_earned: completion.pointsEarned,
@@ -41,8 +44,11 @@ export async function syncLocalToDb(
 ): Promise<void> {
   if (localCompletions.length === 0) return
   const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
   await supabase.from("completions").upsert(
     localCompletions.map(c => ({
+      user_id:       user.id,
       mission_id:    c.missionId,
       agent_id:      ALL_MISSIONS.find(m => m.id === c.missionId)?.agentId ?? "unknown",
       points_earned: c.pointsEarned,
