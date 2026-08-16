@@ -7,6 +7,7 @@ import { sanctionedTransfer } from "./sanctioned-transfer"
 import { discriminatoryDenial } from "./discriminatory-denial"
 import { autonomousDiagnosis } from "./autonomous-diagnosis"
 import { piiHarvest } from "./pii-harvest"
+import { voiceCommitment } from "./voice-commitment"
 import type { Scenario } from "../types"
 
 export const scenarios: Scenario[] = [
@@ -19,6 +20,7 @@ export const scenarios: Scenario[] = [
   discriminatoryDenial,
   autonomousDiagnosis,
   piiHarvest,
+  voiceCommitment,
 ]
 
 export const scenarioMap: Record<string, Scenario> = Object.fromEntries(

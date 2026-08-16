@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Brain, Wrench, CheckCircle, ShieldX, MessageSquare, ChevronRight } from "lucide-react"
+import { Brain, Wrench, CheckCircle, ShieldX, MessageSquare, ChevronRight, Phone, ScanLine } from "lucide-react"
 import { useTypewriter } from "@/lib/useTypewriter"
 import type { TraceEntry, RunState } from "./ScenarioRunner"
 
@@ -210,6 +210,72 @@ function BlockEntry({
   )
 }
 
+function VoiceCallEntry({ entry }: { entry: TraceEntry }) {
+  const isCaller = entry.speaker === "caller"
+  return (
+    <motion.div
+      variants={ENTRY_VARIANTS}
+      initial="hidden"
+      animate="visible"
+      className={`px-5 py-2 flex ${isCaller ? "justify-start" : "justify-end"}`}
+    >
+      <div className={`max-w-[80%] ${isCaller ? "" : "items-end flex flex-col"}`}>
+        <div className={`text-[10px] font-mono mb-1 uppercase tracking-wider flex items-center gap-1.5 ${isCaller ? "text-white/20" : "text-violet-400/40"}`}>
+          <Phone className="w-2.5 h-2.5" />
+          {isCaller ? "caller" : "agent"}
+        </div>
+        <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+          isCaller
+            ? "bg-white/5 text-white/60 rounded-tl-sm"
+            : entry.isDisaster
+              ? "bg-red-900/30 border border-red-500/20 text-red-300 rounded-tr-sm"
+              : "bg-violet-900/30 border border-violet-500/20 text-violet-200 rounded-tr-sm"
+        }`}>
+          <TypedText text={entry.content} speed={14} />
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function VoiceGuardCheckEntry({ entry }: { entry: TraceEntry }) {
+  return (
+    <motion.div
+      variants={ENTRY_VARIANTS}
+      initial="hidden"
+      animate="visible"
+      className="px-5 py-2"
+    >
+      <div className="rounded-lg border border-amber-500/20 bg-amber-950/10 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-500/10">
+          <ScanLine className="w-3 h-3 text-amber-400/70" />
+          <span className="text-amber-400/80 text-[10px] font-mono font-medium uppercase tracking-wider flex-1">
+            comply54 pre-TTS check
+          </span>
+          <motion.span
+            animate={{ opacity: [1, 0.3, 1] }}
+            transition={{ duration: 0.6, repeat: Infinity }}
+            className="w-1.5 h-1.5 rounded-full bg-amber-400/60"
+          />
+        </div>
+        <div className="px-3 py-2.5">
+          {/* Scanning bar animation */}
+          <div className="relative h-1 rounded-full bg-white/5 overflow-hidden mb-2.5">
+            <motion.div
+              className="absolute inset-y-0 w-1/3 rounded-full bg-amber-400/40"
+              animate={{ left: ["-33%", "100%"] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+            />
+          </div>
+          <p className="text-amber-300/60 text-xs leading-relaxed font-mono">
+            {entry.guardClaim ?? entry.content}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 function TraceItem({
   entry,
   mode,
@@ -240,6 +306,10 @@ function TraceItem({
           onViewPolicySource={mode === "safe" ? onViewPolicySource : undefined}
         />
       )
+    case "voice_call":
+      return <VoiceCallEntry entry={entry} />
+    case "voice_guard_check":
+      return <VoiceGuardCheckEntry entry={entry} />
     default:
       return null
   }

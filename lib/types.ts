@@ -51,12 +51,44 @@ export interface AssistantStep {
   delayMs: number
 }
 
+export interface VoiceCallStep {
+  type: "voice_call"
+  speaker: "caller" | "agent"
+  /** Text shown in the transcript bubble. On the left (unsafe) pane this is the disaster version. */
+  content: string
+  /**
+   * If set, speechSynthesis speaks this text (agent lines only).
+   * Defaults to `content` if omitted.
+   */
+  speakText?: string
+  /**
+   * Present on agent steps where the LLM is about to assert something without a tool receipt.
+   * The right (safe) pane shows the pre-TTS guard check, then speaks `safeContent` instead.
+   */
+  voice_guard?: {
+    /** Human-readable description of the unsupported claim being made. */
+    claim: string
+    /** comply54 action + context used to call /api/enforce for the guard check. */
+    comply54: {
+      action: string
+      context: Record<string, unknown>
+    }
+    /** Safe replacement text shown/spoken on the right pane after intercept. */
+    safeContent: string
+    safeSpeakText?: string
+  }
+  /** If true, triggers disaster state on the left (unsafe) pane. */
+  isDisaster?: boolean
+  delayMs: number
+}
+
 export type ScenarioStep =
   | ThinkingStep
   | ToolCallStep
   | ToolResultStep
   | ConsequenceStep
   | AssistantStep
+  | VoiceCallStep
 
 export interface RegulationSpotlight {
   lawName: string

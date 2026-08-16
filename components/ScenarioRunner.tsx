@@ -31,12 +31,26 @@ export type Mode = "demo" | "live"
 export interface TraceEntry {
   id: string
   stepIndex: number
-  type: "thinking" | "tool_call" | "tool_result" | "consequence" | "assistant" | "block"
+  type: "thinking" | "tool_call" | "tool_result" | "consequence" | "assistant" | "block" | "voice_call" | "voice_guard_check"
   content: string
   toolName?: string
   params?: Record<string, unknown>
   enforcement?: EnforcementResult
   isDisaster?: boolean
+  /** For voice_call entries */
+  speaker?: "caller" | "agent"
+  /** For voice_guard_check entries */
+  guardClaim?: string
+  guardRule?: string
+}
+
+function speak(text: string, speaker: "caller" | "agent") {
+  if (typeof window === "undefined" || !window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance(text)
+  u.rate = speaker === "agent" ? 0.92 : 1.0
+  u.pitch = speaker === "caller" ? 1.1 : 0.85
+  window.speechSynthesis.speak(u)
 }
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -112,6 +126,15 @@ export function ScenarioRunner({ scenario }: Props) {
         if (step.isDisaster) setUnsafeState("disaster")
       } else if (step.type === "consequence") {
         setUnsafeTrace((t) => [...t, { id: `u-${i}`, stepIndex: i, type: "consequence", content: step.headline }])
+      } else if (step.type === "voice_call") {
+        setUnsafeTrace((t) => [...t, {
+          id: `u-${i}`, stepIndex: i, type: "voice_call",
+          content: step.content, speaker: step.speaker, isDisaster: step.isDisaster,
+        }])
+        if (step.speaker === "agent") {
+          speak(step.speakText ?? step.content, "agent")
+        }
+        if (step.isDisaster) setUnsafeState("disaster")
       }
     }
     if (unsafeState !== "disaster") setUnsafeState("done")
@@ -154,6 +177,48 @@ export function ScenarioRunner({ scenario }: Props) {
         } catch { /* enforcement error — continue */ }
       } else if (step.type === "tool_result") {
         setSafeTrace((t) => [...t, { id: `s-${i}`, stepIndex: i, type: "tool_result", content: step.result, toolName: step.toolName }])
+      } else if (step.type === "voice_call") {
+        const guard = step.voice_guard
+        if (guard) {
+          // Show the pre-TTS scanning animation
+          setSafeTrace((t) => [...t, {
+            id: `s-guard-${i}`, stepIndex: i, type: "voice_guard_check",
+            content: guard.claim,
+            guardClaim: guard.claim,
+          }])
+          await new Promise((r) => setTimeout(r, 1600))
+
+          // Call comply54 to get a real enforcement result for the regulation spotlight
+          try {
+            const result = await runEnforce(
+              "voice_output_guard",
+              guard.comply54.context,
+              scenario.comply54SectorClass,
+              guard.comply54.action,
+              guard.comply54.context,
+            )
+            setEnforcement(result)
+          } catch { /* use spotlight without enforcement detail */ }
+
+          // Show the safe replacement response
+          setSafeTrace((t) => [...t, {
+            id: `s-${i}`, stepIndex: i, type: "voice_call",
+            content: guard.safeContent, speaker: step.speaker,
+          }])
+          speak(guard.safeSpeakText ?? guard.safeContent, "agent")
+
+          setSafeState("blocked")
+          setSpotlightOpen(true)
+          return
+        }
+        // Caller lines and unguarded agent lines play identically in both panes
+        setSafeTrace((t) => [...t, {
+          id: `s-${i}`, stepIndex: i, type: "voice_call",
+          content: step.content, speaker: step.speaker,
+        }])
+        if (step.speaker === "agent") {
+          speak(step.speakText ?? step.content, "agent")
+        }
       }
     }
     setSafeState("done")
