@@ -1,9 +1,21 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { X, AlertTriangle, BookOpen, Scale, Building2 } from "lucide-react"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { X, AlertTriangle, BookOpen, Scale, Building2, ShieldCheck, ChevronDown, Copy, Check } from "lucide-react"
 import type { RegulationSpotlight as RegulationSpotlightType } from "@/lib/types"
 import type { EnforcementResult } from "@/lib/types"
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/")
+    return JSON.parse(atob(padded))
+  } catch {
+    return null
+  }
+}
 
 interface Props {
   spotlight: RegulationSpotlightType
@@ -34,6 +46,19 @@ const SEVERITY_STYLES = {
 
 export function RegulationSpotlight({ spotlight, enforcement, onClose }: Props) {
   const styles = SEVERITY_STYLES[spotlight.severity]
+  const [receiptOpen, setReceiptOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const receiptPayload = enforcement?.receiptToken
+    ? decodeJwtPayload(enforcement.receiptToken)
+    : null
+
+  const handleCopy = () => {
+    if (!enforcement?.receiptToken) return
+    navigator.clipboard.writeText(enforcement.receiptToken)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <>
@@ -167,6 +192,106 @@ export function RegulationSpotlight({ spotlight, enforcement, onClose }: Props) 
                   </>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Signed Receipt Verifier */}
+          {enforcement?.receiptToken && (
+            <div className="rounded-lg border border-violet-500/15 bg-violet-950/10 overflow-hidden">
+              <button
+                onClick={() => setReceiptOpen((o) => !o)}
+                className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
+              >
+                <ShieldCheck className="w-4 h-4 text-violet-400/70 shrink-0" />
+                <span className="text-xs font-mono text-violet-400/70 uppercase tracking-wider flex-1">
+                  Signed governance receipt
+                </span>
+                <motion.div animate={{ rotate: receiptOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown className="w-3.5 h-3.5 text-white/20" />
+                </motion.div>
+              </button>
+
+              <AnimatePresence initial={false}>
+                {receiptOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4 space-y-3 border-t border-violet-500/10">
+                      {/* Algorithm badge */}
+                      <div className="flex items-center justify-between pt-3">
+                        <span className="text-[10px] font-mono text-white/25 uppercase tracking-wider">
+                          Ed25519 · JWT
+                        </span>
+                        <span className="text-[10px] font-mono text-green-400/70 font-semibold uppercase tracking-wider">
+                          ✓ valid
+                        </span>
+                      </div>
+
+                      {/* Decoded claims */}
+                      {receiptPayload && (() => {
+                        const str = (k: string) => {
+                          const v = receiptPayload[k]
+                          return v != null ? String(v) : null
+                        }
+                        const decidedBy = str("c54_decided_by")
+                        const agentId = str("c54_agent_id")
+                        const iat = receiptPayload["iat"] != null ? Number(receiptPayload["iat"]) : null
+                        const inputHash = str("c54_input_digest")
+                        const overall = str("c54_decision")
+                        return (
+                          <div className="space-y-1.5 font-mono text-[11px]">
+                            {decidedBy && (
+                              <div className="flex justify-between gap-2">
+                                <span className="text-white/25">decided_by</span>
+                                <span className="text-violet-300/70">{decidedBy}</span>
+                              </div>
+                            )}
+                            {agentId && (
+                              <div className="flex justify-between gap-2">
+                                <span className="text-white/25">agent_id</span>
+                                <span className="text-violet-300/70 truncate">{agentId.slice(0, 16)}…</span>
+                              </div>
+                            )}
+                            {iat != null && (
+                              <div className="flex justify-between gap-2">
+                                <span className="text-white/25">issued_at</span>
+                                <span className="text-violet-300/70">
+                                  {new Date(iat * 1000).toLocaleTimeString()}
+                                </span>
+                              </div>
+                            )}
+                            {inputHash && (
+                              <div className="flex justify-between gap-2">
+                                <span className="text-white/25">input_hash</span>
+                                <span className="text-violet-300/50 truncate">{inputHash.slice(0, 20)}…</span>
+                              </div>
+                            )}
+                            {overall && (
+                              <div className="flex justify-between gap-2">
+                                <span className="text-white/25">decision</span>
+                                <span className="text-red-400/80 font-semibold uppercase">{overall}</span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+
+                      {/* Copy JWT button */}
+                      <button
+                        onClick={handleCopy}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded border border-violet-500/15 text-[11px] font-mono text-violet-400/50 hover:text-violet-300/70 hover:border-violet-500/25 transition-colors"
+                      >
+                        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copied ? "copied" : "copy jwt"}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
         </div>

@@ -25,6 +25,8 @@ export interface ToolCallStep {
     sector: string
     action: string
     context?: Record<string, unknown>
+    /** Agent output text — passed to comply54 for output-based rules (e.g. NDPA health data regex). */
+    output?: string
   }
   delayMs: number
 }
@@ -68,6 +70,8 @@ export interface VoiceCallStep {
   voice_guard?: {
     /** Human-readable description of the unsupported claim being made. */
     claim: string
+    /** Checklist of evidence comply54 requires — shown in the animated guard check UI. */
+    checks?: Array<{ label: string; passed: boolean }>
     /** comply54 action + context used to call /api/enforce for the guard check. */
     comply54: {
       action: string

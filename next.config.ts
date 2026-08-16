@@ -4,12 +4,19 @@ const nextConfig: NextConfig = {
   // Vercel serverless: inline the comply54 package (zero-dep, no native binaries)
   serverExternalPackages: [],
   turbopack: {
-    // comply54 receipts.ts uses Buffer (Node built-in) in verifyReceipt().
-    // Polyfill it for client components (e.g. CertificateViewer) so
-    // offline receipt verification works in the browser.
     resolveAlias: {
       buffer: "buffer/",
     },
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        buffer: require.resolve("buffer/"),
+        crypto: false,
+      }
+    }
+    return config
   },
 }
 

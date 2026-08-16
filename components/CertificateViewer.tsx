@@ -3,9 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShieldCheck, Copy, Check, KeyRound, ChevronDown, ChevronUp, Fingerprint, AlertTriangle } from "lucide-react"
-import { verifyReceipt } from "@comply54/core"
 import type { ReceiptPayload } from "@comply54/core"
-import { DEMO_PUBLIC_KEY } from "@/lib/receipt-demo"
 import type { EnforcementResult } from "@/lib/types"
 
 interface Props {
@@ -36,8 +34,16 @@ export function CertificateViewer({ enforcement }: Props) {
     setPayload(null)
     setVerifyError(null)
     try {
-      const p = await verifyReceipt(token, DEMO_PUBLIC_KEY)
-      setPayload(p)
+      const res = await fetch("/api/verify-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(data.error ?? "Verification failed")
+      }
+      setPayload(data.payload as ReceiptPayload)
       setVerifyState("valid")
       setExpanded(true)
     } catch (e) {

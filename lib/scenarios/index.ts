@@ -8,6 +8,7 @@ import { discriminatoryDenial } from "./discriminatory-denial"
 import { autonomousDiagnosis } from "./autonomous-diagnosis"
 import { piiHarvest } from "./pii-harvest"
 import { voiceCommitment } from "./voice-commitment"
+import { healthDataBreach } from "./health-data-breach"
 import type { Scenario } from "../types"
 
 export const scenarios: Scenario[] = [
@@ -21,6 +22,7 @@ export const scenarios: Scenario[] = [
   autonomousDiagnosis,
   piiHarvest,
   voiceCommitment,
+  healthDataBreach,
 ]
 
 export const scenarioMap: Record<string, Scenario> = Object.fromEntries(

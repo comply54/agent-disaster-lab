@@ -239,18 +239,26 @@ function VoiceCallEntry({ entry }: { entry: TraceEntry }) {
 }
 
 function VoiceGuardCheckEntry({ entry }: { entry: TraceEntry }) {
+  const checks = entry.guardChecks ?? []
+  // Use the real policy decision once the enforcement result arrives; fall back to "block"
+  const policyDecision = entry.enforcement?.decision ?? null
+  const decisionLabel = policyDecision === "escalate"
+    ? "ESCALATE → SUPPRESSED"
+    : policyDecision === "deny"
+    ? "DENY → SUPPRESSED"
+    : "BLOCK"
+  const decisionColor = policyDecision === "escalate"
+    ? "text-orange-400"
+    : "text-red-400"
+
   return (
-    <motion.div
-      variants={ENTRY_VARIANTS}
-      initial="hidden"
-      animate="visible"
-      className="px-5 py-2"
-    >
+    <motion.div variants={ENTRY_VARIANTS} initial="hidden" animate="visible" className="px-5 py-2">
       <div className="rounded-lg border border-amber-500/20 bg-amber-950/10 overflow-hidden">
+        {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-500/10">
           <ScanLine className="w-3 h-3 text-amber-400/70" />
           <span className="text-amber-400/80 text-[10px] font-mono font-medium uppercase tracking-wider flex-1">
-            comply54 pre-TTS check
+            comply54 · pre-tts check
           </span>
           <motion.span
             animate={{ opacity: [1, 0.3, 1] }}
@@ -258,18 +266,54 @@ function VoiceGuardCheckEntry({ entry }: { entry: TraceEntry }) {
             className="w-1.5 h-1.5 rounded-full bg-amber-400/60"
           />
         </div>
-        <div className="px-3 py-2.5">
-          {/* Scanning bar animation */}
-          <div className="relative h-1 rounded-full bg-white/5 overflow-hidden mb-2.5">
+
+        <div className="px-3 py-3 space-y-2.5">
+          {/* Scanning bar */}
+          <div className="relative h-0.5 rounded-full bg-white/5 overflow-hidden">
             <motion.div
-              className="absolute inset-y-0 w-1/3 rounded-full bg-amber-400/40"
+              className="absolute inset-y-0 w-1/3 rounded-full bg-amber-400/50"
               animate={{ left: ["-33%", "100%"] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
             />
           </div>
-          <p className="text-amber-300/60 text-xs leading-relaxed font-mono">
+
+          {/* Claim text */}
+          <p className="text-amber-300/50 text-[11px] leading-relaxed font-mono">
             {entry.guardClaim ?? entry.content}
           </p>
+
+          {/* Evidence checklist — staggered appearance */}
+          {checks.length > 0 && (
+            <div className="space-y-1 pt-1.5 border-t border-amber-500/10">
+              {checks.map((check, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + idx * 0.45, duration: 0.2 }}
+                  className="flex items-center justify-between"
+                >
+                  <span className="text-[11px] font-mono text-white/35">{check.label}</span>
+                  <span className={`text-[11px] font-bold font-mono ${check.passed ? "text-green-400" : "text-red-400/80"}`}>
+                    {check.passed ? "✓" : "✗"}
+                  </span>
+                </motion.div>
+              ))}
+
+              {/* Decision — shows actual policy result once enforcement call returns */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 + checks.length * 0.45 + 0.35, duration: 0.25 }}
+                className="flex items-center justify-between pt-1.5 border-t border-amber-500/10"
+              >
+                <span className="text-[10px] font-mono text-white/30 uppercase tracking-wider">decision</span>
+                <span className={`text-[11px] font-bold font-mono uppercase tracking-widest ${decisionColor}`}>
+                  {decisionLabel}
+                </span>
+              </motion.div>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

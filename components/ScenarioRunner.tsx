@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, Play, RotateCcw, Shield, ShieldOff, Zap, FileText, Share2, Check, FlaskConical } from "lucide-react"
@@ -42,15 +42,27 @@ export interface TraceEntry {
   /** For voice_guard_check entries */
   guardClaim?: string
   guardRule?: string
+  guardChecks?: Array<{ label: string; passed: boolean }>
 }
 
-function speak(text: string, speaker: "caller" | "agent") {
-  if (typeof window === "undefined" || !window.speechSynthesis) return
-  window.speechSynthesis.cancel()
-  const u = new SpeechSynthesisUtterance(text)
-  u.rate = speaker === "agent" ? 0.92 : 1.0
-  u.pitch = speaker === "caller" ? 1.1 : 0.85
-  window.speechSynthesis.speak(u)
+function speakAndWait(text: string, speaker: "caller" | "agent"): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) { resolve(); return }
+    const u = new SpeechSynthesisUtterance(text)
+    // Distinct pitch/rate so caller and agent sound like different people
+    u.rate = speaker === "agent" ? 0.87 : 0.97
+    u.pitch = speaker === "caller" ? 1.2 : 0.75
+    u.volume = 1
+    u.onend = () => resolve()
+    u.onerror = () => resolve()
+    window.speechSynthesis.speak(u)
+  })
+}
+
+/** Rough estimate of how long speechSynthesis will take at the given rate (~180 wpm baseline). */
+function estimateSpeechMs(text: string, rate: number): number {
+  const words = text.trim().split(/\s+/).length
+  return Math.ceil((words / (180 * rate)) * 60_000)
 }
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -66,12 +78,13 @@ async function runEnforce(
   params: Record<string, unknown>,
   sectorClass: string,
   action: string,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
+  output?: string,
 ): Promise<EnforcementResult> {
   const res = await fetch("/api/enforce", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ toolName, params, sectorClass, action, context }),
+    body: JSON.stringify({ toolName, params, sectorClass, action, context, output }),
   })
   return res.json()
 }
@@ -91,12 +104,25 @@ export function ScenarioRunner({ scenario }: Props) {
   const [policyPack, setPolicyPack] = useState<string | null>(null)
   const [policyRegulation, setPolicyRegulation] = useState("")
 
+  // Cancel speech when the user navigates away — speechSynthesis is a browser global
+  // that keeps playing even after the component unmounts without this cleanup.
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
+
   const handleViewPolicySource = useCallback((pack: string) => {
     setPolicyPack(pack)
     setPolicyRegulation(enforcement?.primaryViolation?.regulation ?? "")
   }, [enforcement])
 
   const reset = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
     setUnsafeState("idle")
     setSafeState("idle")
     setUnsafeTrace([])
@@ -126,14 +152,21 @@ export function ScenarioRunner({ scenario }: Props) {
         if (step.isDisaster) setUnsafeState("disaster")
       } else if (step.type === "consequence") {
         setUnsafeTrace((t) => [...t, { id: `u-${i}`, stepIndex: i, type: "consequence", content: step.headline }])
+        // For voice scenarios: open the regulation spotlight after the consequence has landed.
+        // (For tool-call scenarios the safe pane opens it when it blocks.)
+        const isVoiceScenario = scenario.steps.some((s) => s.type === "voice_call")
+        if (isVoiceScenario) {
+          await new Promise((r) => setTimeout(r, 1400))
+          setSpotlightOpen(true)
+        }
       } else if (step.type === "voice_call") {
         setUnsafeTrace((t) => [...t, {
           id: `u-${i}`, stepIndex: i, type: "voice_call",
           content: step.content, speaker: step.speaker, isDisaster: step.isDisaster,
         }])
-        if (step.speaker === "agent") {
-          speak(step.speakText ?? step.content, "agent")
-        }
+        // Await the utterance so each line finishes before the next one starts —
+        // both caller and agent speak, creating a real back-and-forth conversation.
+        await speakAndWait(step.speakText ?? step.content, step.speaker)
         if (step.isDisaster) setUnsafeState("disaster")
       }
     }
@@ -160,7 +193,8 @@ export function ScenarioRunner({ scenario }: Props) {
           const result = await runEnforce(
             toolStep.toolName, toolStep.params,
             scenario.comply54SectorClass, toolStep.comply54.action,
-            toolStep.comply54.context ?? {}
+            toolStep.comply54.context ?? {},
+            toolStep.comply54.output,
           )
 
           if (result.blocked) {
@@ -179,14 +213,19 @@ export function ScenarioRunner({ scenario }: Props) {
         setSafeTrace((t) => [...t, { id: `s-${i}`, stepIndex: i, type: "tool_result", content: step.result, toolName: step.toolName }])
       } else if (step.type === "voice_call") {
         const guard = step.voice_guard
+        const speakRate = step.speaker === "agent" ? 0.87 : 0.97
+        const speechMs = estimateSpeechMs(step.speakText ?? step.content, speakRate)
+
         if (guard) {
-          // Show the pre-TTS scanning animation
+          // Show the pre-TTS scanning animation (safe pane is silent — no audio collision)
           setSafeTrace((t) => [...t, {
             id: `s-guard-${i}`, stepIndex: i, type: "voice_guard_check",
             content: guard.claim,
             guardClaim: guard.claim,
+            guardChecks: guard.checks,
           }])
-          await new Promise((r) => setTimeout(r, 1600))
+          // Hold the animation long enough for comply54 to "scan" the speech, then enforce
+          await new Promise((r) => setTimeout(r, Math.max(1600, speechMs * 0.4)))
 
           // Call comply54 to get a real enforcement result for the regulation spotlight
           try {
@@ -198,27 +237,31 @@ export function ScenarioRunner({ scenario }: Props) {
               guard.comply54.context,
             )
             setEnforcement(result)
+            // Backfill the guard entry with the real enforcement result so
+            // AgentTrace can show the actual policy decision (escalate/deny/…)
+            // rather than a hardcoded "BLOCK".
+            setSafeTrace((t) =>
+              t.map((e) => e.id === `s-guard-${i}` ? { ...e, enforcement: result } : e)
+            )
           } catch { /* use spotlight without enforcement detail */ }
 
-          // Show the safe replacement response
+          // Show the safe replacement — text only, no speech (left pane owns the audio)
           setSafeTrace((t) => [...t, {
             id: `s-${i}`, stepIndex: i, type: "voice_call",
             content: guard.safeContent, speaker: step.speaker,
           }])
-          speak(guard.safeSpeakText ?? guard.safeContent, "agent")
 
           setSafeState("blocked")
-          setSpotlightOpen(true)
+          // Spotlight opens after the full disaster plays on the left pane (consequence step)
           return
         }
-        // Caller lines and unguarded agent lines play identically in both panes
+        // Caller and unguarded agent lines: show text, then wait the estimated speech
+        // duration so both panes stay roughly in sync even though this pane is silent.
         setSafeTrace((t) => [...t, {
           id: `s-${i}`, stepIndex: i, type: "voice_call",
           content: step.content, speaker: step.speaker,
         }])
-        if (step.speaker === "agent") {
-          speak(step.speakText ?? step.content, "agent")
-        }
+        await new Promise((r) => setTimeout(r, speechMs))
       }
     }
     setSafeState("done")
