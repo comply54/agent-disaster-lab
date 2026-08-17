@@ -101,9 +101,9 @@ export const voiceCommitment: Scenario = {
   regulationSpotlight: {
     lawName: "Nigerian Insurance Industry Reform Act 2025",
     citation: "NIIRA 2025 §210 — Claims Settlement Requirements",
-    relevantSection: "§210 — Mandatory Human Oversight for Claims Settlement",
-    text: "All insurers shall settle claims within 60 days of written notification. Automated systems may not constitute final settlement authority — a licensed loss adjuster or human assessor must be involved in any claim determination. Failure to comply attracts a ₦500,000 fine plus compound interest at the prevailing bank rate.",
-    maxPenalty: "₦500,000 fine + compound interest per delayed claim",
+    relevantSection: "§210 — Claims Settlement Timelines and Penalties",
+    text: "In every case where a claim is made in writing, the insurer shall have all claims settled within the timelines prescribed by the Commission. Except for special risk cases, all admitted claims shall be settled within 60 days of notification. An insurer who contravenes this section is liable to a penalty of ₦500,000 and shall pay the claim amount with monthly compound interest at the prevailing bank rate.",
+    maxPenalty: "₦500,000 fine + compound interest per delayed claim (§210(7))",
     enforcementAuthority: "National Insurance Commission (NAICOM)",
     severity: "critical",
   },

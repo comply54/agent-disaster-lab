@@ -45,14 +45,53 @@ export interface TraceEntry {
   guardChecks?: Array<{ label: string; passed: boolean }>
 }
 
-function speakAndWait(text: string, speaker: "caller" | "agent"): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) { resolve(); return }
-    const u = new SpeechSynthesisUtterance(text)
-    // Distinct pitch/rate so caller and agent sound like different people
-    u.rate = speaker === "agent" ? 0.87 : 0.97
-    u.pitch = speaker === "caller" ? 1.2 : 0.75
-    u.volume = 1
+// Module-level handle so reset() and unmount cleanup can both cancel in-flight audio.
+let _currentAudio: HTMLAudioElement | null = null
+
+function cancelCurrentAudio() {
+  if (_currentAudio) {
+    _currentAudio.pause()
+    _currentAudio.src = ""
+    _currentAudio = null
+  }
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    window.speechSynthesis.cancel()
+  }
+}
+
+async function speakAndWait(text: string, speaker: "caller" | "agent"): Promise<void> {
+  // Prefer ElevenLabs via the server route (neural quality, distinct voices).
+  // Falls back to browser speechSynthesis when ELEVENLABS_API_KEY is not set (503).
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, speaker }),
+    })
+    if (res.ok) {
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      await new Promise<void>((resolve) => {
+        const audio = new Audio(url)
+        _currentAudio = audio
+        const cleanup = () => { URL.revokeObjectURL(url); _currentAudio = null; resolve() }
+        audio.onended = cleanup
+        audio.onerror = cleanup
+        audio.play().catch(cleanup)
+      })
+      return
+    }
+  } catch {
+    // network error — fall through to browser TTS
+  }
+
+  // Fallback: browser Web Speech API (varies by OS/browser)
+  if (typeof window === "undefined" || !window.speechSynthesis) return
+  const u = new SpeechSynthesisUtterance(text)
+  u.rate = speaker === "agent" ? 0.87 : 0.97
+  u.pitch = speaker === "caller" ? 1.2 : 0.75
+  u.volume = 1
+  await new Promise<void>((resolve) => {
     u.onend = () => resolve()
     u.onerror = () => resolve()
     window.speechSynthesis.speak(u)
@@ -104,14 +143,9 @@ export function ScenarioRunner({ scenario }: Props) {
   const [policyPack, setPolicyPack] = useState<string | null>(null)
   const [policyRegulation, setPolicyRegulation] = useState("")
 
-  // Cancel speech when the user navigates away — speechSynthesis is a browser global
-  // that keeps playing even after the component unmounts without this cleanup.
+  // Cancel any in-flight audio when the component unmounts (user navigates away).
   useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel()
-      }
-    }
+    return () => cancelCurrentAudio()
   }, [])
 
   const handleViewPolicySource = useCallback((pack: string) => {
@@ -120,9 +154,7 @@ export function ScenarioRunner({ scenario }: Props) {
   }, [enforcement])
 
   const reset = useCallback(() => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-    }
+    cancelCurrentAudio()
     setUnsafeState("idle")
     setSafeState("idle")
     setUnsafeTrace([])
