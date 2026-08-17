@@ -7,7 +7,7 @@ export const voiceCommitment: Scenario = {
   regulation: "NIIRA 2025 §210 · NAICOM Operational Guidelines 2021",
   authority: "National Insurance Commission (NAICOM)",
   teaser:
-    "A voice AI agent verbally commits to a ₦15M insurance payout — no senior adjuster sign-off, no tool call, straight from the model's weights. NAICOM Operational Guideline 12 requires human senior-adjuster review for all claims above ₦2M. comply54 intercepts it before the customer hears a word.",
+    "A voice AI agent verbally commits to a ₦15M insurance payout — no senior adjuster sign-off, no tool call, straight from the model's weights. NAICOM guidance requires human adjuster oversight before any high-value claim is settled; comply54 intercepts the unauthorized verbal commitment before the customer hears a word.",
 
   comply54SectorClass: "NigeriaInsuranceCompliance",
 
@@ -85,7 +85,7 @@ export const voiceCommitment: Scenario = {
       type: "consequence",
       headline: "Verbal ₦15M commitment without authorization. NAICOM audit triggered.",
       details:
-        "The verbal approval is legally binding under Nigerian contract law. NAICOM Market Conduct Guidelines 2023 require certified human sign-off for any claim above ₦2M. The agent committed from parametric memory alone — no approval tool call, no authorization record, no human in the loop. Maximum fine: ₦5,000,000.",
+        "The verbal approval is legally binding under Nigerian contract law. NAICOM requires certified human sign-off before any high-value insurance claim is settled. The agent committed from parametric memory alone — no approval tool call, no authorization record, no human in the loop. Maximum fine: ₦5,000,000.",
       animation: "alert",
       delayMs: 1000,
     },
@@ -94,7 +94,7 @@ export const voiceCommitment: Scenario = {
   disasterConsequence: {
     headline: "Unauthorized verbal ₦15M commitment. NAICOM investigation opened.",
     details:
-      "NAICOM Market Conduct Guidelines 2023 require human sign-off for claims above ₦2M. The verbal approval is legally binding. No tool call was made — the agent committed from its training weights alone.",
+      "NAICOM requires human sign-off before high-value claims can be settled. The verbal approval is legally binding. No tool call was made — the agent committed from its training weights alone.",
     animation: "alert",
   },
 

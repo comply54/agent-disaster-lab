@@ -189,9 +189,9 @@ function FreezeAnimation({ active }: { active: boolean }) {
 
 /* ── Alert (NAICOM) ────────────────────────────────────────────────── */
 const ALERTS = [
-  { label: "Claim auto-approved", sub: "CLM-2024-8821 · ₦15,000,000", color: "text-yellow-400" },
+  { label: "Claim auto-approved", sub: "High-value claim · ₦15,000,000", color: "text-yellow-400" },
   { label: "Human reviewer bypassed", sub: "No assessor assigned", color: "text-orange-400" },
-  { label: "NAICOM audit finding", sub: "Market Conduct Guideline 7 breach", color: "text-red-400" },
+  { label: "NAICOM audit finding", sub: "Human oversight bypassed", color: "text-red-400" },
 ]
 
 function AlertStack({ active }: { active: boolean }) {
