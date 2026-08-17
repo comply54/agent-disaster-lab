@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       audioStream.on("error", reject)
     })
 
-    return new NextResponse(audio, {
+    return new NextResponse(new Uint8Array(audio), {
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-store",
