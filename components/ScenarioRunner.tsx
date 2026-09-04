@@ -489,36 +489,36 @@ export function ScenarioRunner({ scenario }: Props) {
   return (
     <div className="min-h-screen bg-[#080a0f] text-white flex flex-col">
       {/* Nav */}
-      <nav className="border-b border-white/5 px-6 py-4 flex items-center gap-4 shrink-0">
-        <Link href="/" className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-sm">
+      <nav className="border-b border-white/5 px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
+        <Link href="/" className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-sm shrink-0">
           <ArrowLeft className="w-4 h-4" />
-          All scenarios
+          <span className="hidden sm:inline">All scenarios</span>
         </Link>
-        <div className="w-px h-4 bg-white/10" />
-        <span className={`text-sm font-medium ${SECTOR_COLORS[scenario.sector] ?? "text-white/60"}`}>
+        <div className="w-px h-4 bg-white/10 shrink-0" />
+        <span className={`text-sm font-medium shrink-0 ${SECTOR_COLORS[scenario.sector] ?? "text-white/60"}`}>
           {scenario.sector}
         </span>
-        <span className="text-white/20 text-sm">/</span>
-        <span className="text-sm text-white/60 truncate">{scenario.name}</span>
+        <span className="text-white/20 text-sm shrink-0">/</span>
+        <span className="text-sm text-white/60 truncate min-w-0">{scenario.name}</span>
         <Link
           href="/sandbox"
           className="ml-auto flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors shrink-0"
         >
           <FlaskConical className="w-3.5 h-3.5" />
-          Sandbox
+          <span className="hidden sm:inline">Sandbox</span>
         </Link>
       </nav>
 
       {/* Scenario header */}
-      <div className="px-6 pt-6 pb-5 border-b border-white/5 shrink-0">
+      <div className="px-4 sm:px-6 pt-5 pb-4 sm:pt-6 sm:pb-5 border-b border-white/5 shrink-0">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold mb-1">{scenario.name}</h1>
-              <p className="text-white/40 text-sm max-w-2xl">{scenario.teaser}</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold mb-1">{scenario.name}</h1>
+              <p className="text-white/40 text-sm">{scenario.teaser}</p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               {/* Mode toggle */}
               <div className="flex rounded-lg border border-white/10 overflow-hidden text-xs">
                 <button
@@ -587,7 +587,7 @@ export function ScenarioRunner({ scenario }: Props) {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className="text-xs text-white/30 border-white/10">
               {scenario.regulation}
             </Badge>
