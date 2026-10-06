@@ -10,11 +10,13 @@
     "export-scenarios": "npx tsx scripts/export-scenarios.ts",
     "disaster": "npx tsx --tsconfig cli/node/tsconfig.json cli/node/src/index.tsx",
     "disaster:py": "python3 -m agent_disaster_lab",
-    "test:trace": "npx tsx scripts/trace-equivalence.ts .trace-artifacts && npx tsx scripts/trace-verify-check.ts && python3 scripts/trace_equivalence_check.py .trace-artifacts"
+    "test:trace": "npx tsx scripts/trace-equivalence.ts .trace-artifacts && npx tsx scripts/trace-verify-check.ts && python3 scripts/trace_equivalence_check.py .trace-artifacts",
+    "test:enforcement": "npx tsx scripts/audit-enforcement.ts",
+    "test": "npm run test:enforcement && npm run test:trace"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
-    "@comply54/core": "^0.7.0",
+    "@comply54/core": "^0.8.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "buffer": "^6.0.3",

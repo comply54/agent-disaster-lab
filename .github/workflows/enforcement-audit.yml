@@ -1,0 +1,47 @@
+name: Enforcement audit
+
+# Every scenario tells the visitor the protected pane is protected. This runs each
+# scenario's comply54 configuration through the real engine and fails if any of
+# them claims a protection the packs do not actually provide.
+#
+# Added after five of eleven scenarios were found rendering "Protected by comply54"
+# while the engine returned allow, because the packs matched action names against
+# closed sets and an unlisted name fell through silently.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/scenarios/**"
+      - "scripts/audit-enforcement.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/enforcement-audit.yml"
+  pull_request:
+    paths:
+      - "lib/scenarios/**"
+      - "scripts/audit-enforcement.ts"
+      - "package.json"
+      - "package-lock.json"
+  schedule:
+    # A published comply54 release can change what enforces without this repo
+    # changing at all, so check independently of commits.
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Every scenario must actually enforce
+        run: npm run test:enforcement
