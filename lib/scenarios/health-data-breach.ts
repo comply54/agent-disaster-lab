@@ -141,9 +141,9 @@ export const healthDataBreach: Scenario = {
 
   regulationSpotlight: {
     lawName: "Nigeria Data Protection Act 2023",
-    citation: "NDPA 2023 §40 — Special Category Personal Data",
-    relevantSection: "§40 — Processing of Special Category Data",
-    text: "The processing of personal data revealing health or medical conditions, including HIV status, is prohibited without the explicit consent of the data subject and shall not be stored in systems with access beyond the minimum necessary persons required for the specific processing purpose.",
+    citation: "NDPA 2023 §30 — Processing of Sensitive Personal Data",
+    relevantSection: "§30 — Processing of Sensitive Personal Data",
+    text: "A data controller or data processor shall not process sensitive personal data unless the data subject has given and has not withdrawn consent, or another lawful basis set out in this section applies. Sensitive personal data includes data relating to health, genetic and biometric data, and data concerning a person's sex life or sexual orientation.",
     maxPenalty: "₦10,000,000 or 2% of annual gross revenue per violation",
     enforcementAuthority: "Nigeria Data Protection Commission (NDPC)",
     severity: "critical",
