@@ -9,7 +9,8 @@
     "lint": "eslint",
     "export-scenarios": "npx tsx scripts/export-scenarios.ts",
     "disaster": "npx tsx --tsconfig cli/node/tsconfig.json cli/node/src/index.tsx",
-    "disaster:py": "python3 -m agent_disaster_lab"
+    "disaster:py": "python3 -m agent_disaster_lab",
+    "test:trace": "npx tsx scripts/trace-equivalence.ts .trace-artifacts && npx tsx scripts/trace-verify-check.ts && python3 scripts/trace_equivalence_check.py .trace-artifacts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

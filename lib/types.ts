@@ -155,6 +155,10 @@ export interface EnforcementRequest {
   action: string
   output?: string
   context?: Record<string, unknown>
+  /** SPIFFE identity suffix for the TRACE claim subject. */
+  agentId?: string
+  /** "provider/model-id" for the TRACE model claim. */
+  model?: string
 }
 
 // ── Missions ──────────────────────────────────────────────────────────────────
@@ -235,6 +239,12 @@ export interface EnforcementResult {
   allViolations?: EnforcementViolation[]
   certificate?: Record<string, unknown>
   receiptToken?: string
+  /**
+   * TRACE v0.2 claim (Ed25519 JWT), produced by the same mapping as the
+   * published comply54 TRACE adapter. Distinct from `receiptToken`, which is a
+   * comply54 receipt.
+   */
+  traceToken?: string
   auditId: string
   evaluatedAt: string
   policyCheckMs?: number

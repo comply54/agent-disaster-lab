@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { EnforcementRequest, EnforcementResult } from "@/lib/types"
-import { DEMO_PRIVATE_KEY } from "@/lib/receipt-demo"
+import { DEMO_PRIVATE_KEY, DEMO_PUBLIC_KEY } from "@/lib/receipt-demo"
+import { buildTraceRecord } from "@/lib/trace"
 
 import {
   NigeriaFintechCompliance,
@@ -19,6 +20,7 @@ type SectorClassName =
 
 // Use env var in production deployments; fall back to the committed demo key.
 const SIGNING_KEY = process.env.COMPLY54_DEMO_SIGNING_KEY ?? DEMO_PRIVATE_KEY
+const PUBLIC_KEY = process.env.COMPLY54_DEMO_PUBLIC_KEY ?? DEMO_PUBLIC_KEY
 
 function getSectorInstance(className: SectorClassName) {
   const opts = { signingKey: SIGNING_KEY }
@@ -65,12 +67,26 @@ export async function POST(request: NextRequest) {
     )
     const policyCheckMs = Date.now() - enfStart
 
+    // TRACE v0.2 claim from the same ComplianceResult, using the mapping the
+    // published Python adapter uses. Never fail the enforcement response on it.
+    let traceToken: string | undefined
+    try {
+      const trace = await buildTraceRecord(result, SIGNING_KEY, PUBLIC_KEY, {
+        agentId: body.agentId,
+        model: body.model,
+      })
+      traceToken = trace.token
+    } catch (err) {
+      console.error("[/api/enforce] TRACE record generation failed:", err)
+    }
+
     const response: EnforcementResult = {
       decision: result.overall,
       blocked: result.blocked,
       auditId: result.auditId,
       evaluatedAt: result.evaluatedAt,
       receiptToken: result.receiptToken,
+      traceToken,
       policyCheckMs,
       ...(result.primaryViolation && {
         primaryViolation: {

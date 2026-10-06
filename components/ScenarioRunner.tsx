@@ -9,6 +9,7 @@ import { AgentTrace } from "@/components/AgentTrace"
 import { RegulationSpotlight } from "@/components/RegulationSpotlight"
 import { DisasterAnimation } from "@/components/DisasterAnimation"
 import { CertificateViewer } from "@/components/CertificateViewer"
+import { TraceRecordViewer } from "@/components/TraceRecordViewer"
 import { ApiKeyModal } from "@/components/ApiKeyModal"
 import { ScenarioCodeSnippet } from "@/components/ScenarioCodeSnippet"
 import { PolicySourceModal } from "@/components/PolicySourceModal"
@@ -670,7 +671,10 @@ export function ScenarioRunner({ scenario }: Props) {
               onViewPolicySource={handleViewPolicySource}
             />
             {enforcement && safeState === "blocked" && (
-              <CertificateViewer enforcement={enforcement} />
+              <>
+                <CertificateViewer enforcement={enforcement} />
+                <TraceRecordViewer enforcement={enforcement} />
+              </>
             )}
           </div>
         </div>

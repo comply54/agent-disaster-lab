@@ -1,0 +1,73 @@
+name: TRACE equivalence
+
+# Proves the demo's TRACE claims stay identical to the published comply54 TRACE
+# adapter in agentrust-io/integrations. The scheduled run matters as much as the
+# push run: it catches an upstream adapter change that silently makes the two
+# diverge, rather than discovering it from a reader's bug report.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/trace.ts"
+      - "app/api/enforce/**"
+      - "app/api/trace-record/**"
+      - "app/api/verify-trace/**"
+      - "scripts/trace-equivalence.ts"
+      - "scripts/trace-verify-check.ts"
+      - "scripts/trace_equivalence_check.py"
+      - ".github/workflows/trace-equivalence.yml"
+  pull_request:
+    paths:
+      - "lib/trace.ts"
+      - "app/api/enforce/**"
+      - "scripts/trace*"
+  schedule:
+    # Mondays 06:00 UTC: detects upstream adapter drift without a local change.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      adapter_ref:
+        description: "agentrust-io/integrations ref to check against"
+        required: false
+        default: "main"
+
+jobs:
+  equivalence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install adapter dependencies
+        run: python3 -m pip install --quiet "pyjwt>=2.8" "cryptography>=42"
+
+      - name: Mint TRACE claims from the TypeScript mapping
+        run: npx tsx scripts/trace-equivalence.ts .trace-artifacts
+
+      - name: Round-trip and tamper checks
+        run: npx tsx scripts/trace-verify-check.ts
+
+      - name: Compare against the published adapter
+        env:
+          TRACE_ADAPTER_REF: ${{ github.event.inputs.adapter_ref || 'main' }}
+        run: python3 scripts/trace_equivalence_check.py .trace-artifacts
+
+      - name: Upload claim sets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trace-claims
+          path: .trace-artifacts/
+          retention-days: 14
