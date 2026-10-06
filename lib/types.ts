@@ -117,6 +117,12 @@ export interface Scenario {
   regulation: string
   authority: string
   teaser: string
+  /**
+   * Identifies the governed agent in the TRACE claim subject
+   * (`spiffe://comply54.io/agent/<id>`). Names the agent, not the scenario.
+   * Falls back to the scenario id when unset.
+   */
+  traceAgentId?: string
   steps: ScenarioStep[]
   disasterConsequence: DisasterConsequence
   regulationSpotlight: RegulationSpotlight

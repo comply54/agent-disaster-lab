@@ -34,6 +34,7 @@ export const tier1Bypass: Scenario = {
   authority: "Central Bank of Nigeria",
   teaser:
     "An agent processes a ₦5,000,000 transfer for an unverified Tier-1 customer — 100× the ₦50,000 single-transaction cap — without triggering a KYC upgrade.",
+  traceAgentId: "onboarding-agent",
   comply54SectorClass: "NigeriaFintechCompliance",
   steps: [
     {

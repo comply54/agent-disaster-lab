@@ -120,11 +120,13 @@ async function runEnforce(
   action: string,
   context: Record<string, unknown>,
   output?: string,
+  agentId?: string,
+  model?: string,
 ): Promise<EnforcementResult> {
   const res = await fetch("/api/enforce", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ toolName, params, sectorClass, action, context, output }),
+    body: JSON.stringify({ toolName, params, sectorClass, action, context, output, agentId, model }),
   })
   return res.json()
 }
@@ -228,6 +230,7 @@ export function ScenarioRunner({ scenario }: Props) {
             scenario.comply54SectorClass, toolStep.comply54.action,
             toolStep.comply54.context ?? {},
             toolStep.comply54.output,
+            scenario.traceAgentId ?? scenario.id,
           )
 
           if (result.blocked) {
@@ -268,6 +271,8 @@ export function ScenarioRunner({ scenario }: Props) {
               scenario.comply54SectorClass,
               guard.comply54.action,
               guard.comply54.context,
+              undefined,
+              scenario.traceAgentId ?? scenario.id,
             )
             setEnforcement(result)
             // Backfill the guard entry with the real enforcement result so
@@ -382,7 +387,10 @@ export function ScenarioRunner({ scenario }: Props) {
                 params,
                 scenario.comply54SectorClass,
                 matchingStep?.comply54.action ?? event.toolCall.function.name,
-                matchingStep?.comply54.context ?? {}
+                matchingStep?.comply54.context ?? {},
+                undefined,
+                scenario.traceAgentId ?? scenario.id,
+                model,
               )
 
               if (result.blocked) {

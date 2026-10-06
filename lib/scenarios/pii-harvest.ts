@@ -34,6 +34,7 @@ export const piiHarvest: Scenario = {
   authority: "NDPC / ODPC Kenya",
   teaser:
     "A data agent bulk-exports 50,000 customer records — names, NINs, phone numbers, addresses — from both Nigerian and Kenyan user bases with no lawful basis.",
+  traceAgentId: "marketing-data-agent",
   comply54SectorClass: "PanAfricanFintechCompliance",
   steps: [
     {

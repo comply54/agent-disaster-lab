@@ -8,6 +8,7 @@ export const voiceCommitment: Scenario = {
   authority: "National Insurance Commission (NAICOM)",
   teaser:
     "A voice AI agent verbally commits to a ₦15M insurance payout — no senior adjuster sign-off, no tool call, straight from the model's weights. NAICOM guidance requires human adjuster oversight before any high-value claim is settled; comply54 intercepts the unauthorized verbal commitment before the customer hears a word.",
+  traceAgentId: "claims-voice-agent",
 
   comply54SectorClass: "NigeriaInsuranceCompliance",
 

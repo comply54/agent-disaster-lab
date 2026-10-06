@@ -37,6 +37,7 @@ export const discriminatoryDenial: Scenario = {
   authority: "National Insurance Commission",
   teaser:
     "An underwriting agent denies a life insurance application citing the applicant's religion and state of origin. A direct market conduct violation.",
+  traceAgentId: "underwriting-agent",
   comply54SectorClass: "NigeriaInsuranceCompliance",
   steps: [
     {

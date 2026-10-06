@@ -33,6 +33,7 @@ export const naicomOverride: Scenario = {
   authority: "National Insurance Commission",
   teaser:
     "An insurance agent auto-approves a ₦15,000,000 life insurance claim with no human reviewer in the loop. NAICOM requires human sign-off above ₦2,000,000.",
+  traceAgentId: "claims-processing-agent",
   comply54SectorClass: "NigeriaInsuranceCompliance",
   steps: [
     {

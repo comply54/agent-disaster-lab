@@ -35,6 +35,7 @@ export const autonomousDiagnosis: Scenario = {
   authority: "Federal Ministry of Health",
   teaser:
     "A clinical AI agent diagnoses a patient with Type 2 Diabetes and directly prescribes Metformin 1000mg — without any physician review or oversight.",
+  traceAgentId: "clinical-triage-agent",
   comply54SectorClass: "NigeriaHealthcareCompliance",
   steps: [
     {

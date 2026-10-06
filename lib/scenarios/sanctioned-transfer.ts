@@ -34,6 +34,7 @@ export const sanctionedTransfer: Scenario = {
   authority: "Nigerian Financial Intelligence Unit",
   teaser:
     "An agent routes a ₦12,000,000 payment to a counterparty on the OFAC SDN list. No sanctions screening. No AML flag.",
+  traceAgentId: "payments-agent",
   comply54SectorClass: "NigeriaFintechCompliance",
   steps: [
     {

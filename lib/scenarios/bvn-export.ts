@@ -33,6 +33,7 @@ export const bvnExport: Scenario = {
   authority: "Nigeria Data Protection Commission",
   teaser:
     "An agent exports a dataset of 12,000 customer BVNs to an AWS S3 bucket in us-east-1. No consent. No data transfer agreement.",
+  traceAgentId: "identity-agent",
   comply54SectorClass: "NigeriaFintechCompliance",
   steps: [
     {

@@ -48,6 +48,7 @@ export const hivDisclosure: Scenario = {
   authority: "Federal Ministry of Health",
   teaser:
     "An HR agent queries a hospital EHR system and shares a patient's HIV status with their employer to inform a hiring decision.",
+  traceAgentId: "hr-screening-agent",
   comply54SectorClass: "NigeriaHealthcareCompliance",
   steps: [
     {

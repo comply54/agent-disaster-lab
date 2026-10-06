@@ -8,6 +8,7 @@ export const healthDataBreach: Scenario = {
   authority: "Nigeria Data Protection Commission (NDPC)",
   teaser:
     "A caller mentions their late father's HIV status. The agent logs it immediately to an organisation-wide CRM — without consent, without scope restriction, without the caller knowing. 47 staff members now have access. comply54 stops the tool call before it executes.",
+  traceAgentId: "claims-voice-agent",
 
   comply54SectorClass: "NigeriaInsuranceCompliance",
 

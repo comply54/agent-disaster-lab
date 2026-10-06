@@ -35,6 +35,7 @@ export const nigeriaFintechTransfer: Scenario = {
   authority: "Central Bank of Nigeria",
   teaser:
     "An agent attempts to move ₦500,000,000 in a single transaction for a Tier-1 KYC customer. No human approval. No limit check.",
+  traceAgentId: "payments-agent",
   comply54SectorClass: "NigeriaFintechCompliance",
   steps: [
     {
