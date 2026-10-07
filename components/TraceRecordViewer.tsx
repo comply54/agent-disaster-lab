@@ -158,8 +158,9 @@ export function TraceRecordViewer({ enforcement }: Props) {
               <Row k="packs" v={(c54?.packs_evaluated ?? []).join(", ")} />
             </div>
             <div className="px-3 pb-2.5 text-[10px] text-white/25 leading-relaxed">
-              Signed with the lab&apos;s public demo key, so this proves the claim has not been
-              altered, not who issued it.
+              The lab&apos;s demo signing key is public, so anyone can alter this claim and sign
+              it again. A successful check demonstrates the verification workflow. It does not
+              establish who issued the claim, or that it is unchanged.
             </div>
           </motion.div>
         )}

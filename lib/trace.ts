@@ -212,9 +212,10 @@ function base64urlToBytes(s: string): Uint8Array {
 /**
  * Verify a TRACE record's Ed25519 signature and return its claims.
  *
- * Checks the signature only. It does not establish that the signer is
- * authoritative: on this demo the key is the public demo keypair, so a valid
- * signature proves integrity, not provenance.
+ * Checks the signature only. On this demo the signing key is public, so anyone
+ * can alter a claim and sign it again: a successful check establishes neither
+ * provenance nor integrity, only that the verification path works. Supply a key
+ * the verifier actually trusts before reading anything more into a pass.
  */
 export async function verifyTraceRecord(
   token: string,
