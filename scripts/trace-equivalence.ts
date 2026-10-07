@@ -9,7 +9,7 @@
  * the same logical input and the two compared claim by claim.
  */
 
-import { writeFileSync } from "node:fs"
+import { mkdirSync, writeFileSync } from "node:fs"
 import { NigeriaInsuranceCompliance } from "@comply54/core"
 import { buildTraceRecord } from "../lib/trace"
 import { DEMO_PRIVATE_KEY, DEMO_PUBLIC_KEY } from "../lib/receipt-demo"
@@ -20,6 +20,7 @@ const MODEL = "anthropic/claude-sonnet-4-6"
 
 async function main() {
   const outDir = process.argv[2] ?? "."
+  mkdirSync(outDir, { recursive: true })
 
   // The voice-commitment scenario: a ₦15M life claim approved with no senior
   // adjuster sign-off. Same inputs the demo sends to /api/enforce.
